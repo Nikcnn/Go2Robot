@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass, field as dc_field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
@@ -55,6 +56,11 @@ class RobotState(StrictModel):
     sport_mode_error: int | None = None   # SportModeState_.error_code; 0 = no error
     motion_mode: int | None = None        # SportModeState_.mode; 0 = idle
     bms_status: int | None = None         # LowState_.bms_state.status; 0x08 = abnormal
+    # Locomotion lifecycle fields — populated by adapter.get_state().
+    locomotion_state: str = "unknown"     # disconnected|idle|activating|ready|moving|damped|fault
+    can_move: bool = False
+    block_reason: str | None = None       # estop_latched|robot_idle|robot_damped|sdk_not_connected|
+                                          # sport_service_unavailable|fault_present|watchdog_timeout|mode_rules
 
 
 class MotionCommand(StrictModel):
@@ -141,6 +147,12 @@ class StatusResponse(StrictModel):
     route_id: str | None = None
     mission_id: str | None = None
     active_step_id: str | None = None
+    # Part C — locomotion lifecycle fields
+    control_mode: str = "auto"            # auto|manual|estop
+    locomotion_state: str = "unknown"
+    can_move: bool = False
+    block_reason: str | None = None
+    activation_required: bool = False
 
 
 class MissionCurrentResponse(StrictModel):
@@ -167,6 +179,33 @@ class AnalyzerResult(StrictModel):
     result: str
     score: float | None = None
     details: dict = Field(default_factory=dict)
+
+
+@dataclass
+class AnalysisResult:
+    """Structured checkpoint analysis output."""
+    analyzer_name: str
+    label: str          # "changed"|"stable"|"present"|"absent"|"mock"|...
+    score: float
+    passed: bool
+    threshold: float
+    details: dict
+    reference_image_path: str | None = None
+    image_path: str = ""      # set by storage after save
+    timestamp: str = ""       # ISO-8601, set at checkpoint time
+
+    def to_dict(self) -> dict:
+        return {
+            "analyzer_name": self.analyzer_name,
+            "label": self.label,
+            "score": self.score,
+            "passed": self.passed,
+            "threshold": self.threshold,
+            "details": self.details,
+            "reference_image_path": self.reference_image_path,
+            "image_path": self.image_path,
+            "timestamp": self.timestamp,
+        }
 
 
 class FinalReport(StrictModel):

@@ -6,6 +6,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
+from dataclasses import dataclass
 
 import cv2
 import numpy as np
@@ -34,6 +35,8 @@ _SPORT_STATE_TOPIC = "rt/sportmodestate"
 _LOW_STATE_TOPIC = "rt/lowstate"
 _CAMERA_URI = "udp://230.1.1.1:1720"
 _SERVICE_REFRESH_INTERVAL_SEC = 5.0
+_SPORT_ERROR_DAMPING = 1001
+_SPORT_ERROR_STANDING_LOCK = 1002
 _SPORT_MODE_LABELS = {
     0: "idle",
     1: "balanceStand",
@@ -50,6 +53,20 @@ _SPORT_MODE_LABELS = {
     12: "frontJump",
     13: "frontPounce",
 }
+_DDS_READY_MOTION_MODES = frozenset({1, 2, 3})
+_DDS_DAMPING_MOTION_MODES = frozenset({7})
+_DDS_STANDING_LOCK_MOTION_MODES = frozenset({6})
+_DDS_IDLE_MOTION_MODES = frozenset({0, 5, 6, 10})
+_UNSET = object()
+
+
+@dataclass(frozen=True)
+class _LocomotionSnapshot:
+    locomotion_state: str
+    can_move: bool
+    block_reason: str | None
+    motion_mode: int | None
+    sport_mode_error: int | None
 
 
 class Go2RobotAdapter:
@@ -109,6 +126,11 @@ class Go2RobotAdapter:
         self._camera_status = "Camera disabled in config." if not camera_enabled else "Waiting for camera frames."
         self._camera_warned: bool = False
 
+        # Locomotion state machine: disconnected → idle → activating → ready ↔ moving
+        #                                                                 ↓
+        #                                                               damped / fault
+        self._locomotion_state: str = "disconnected"
+
     # ------------------------------------------------------------------
     # Lifecycle
     # ------------------------------------------------------------------
@@ -132,12 +154,15 @@ class Go2RobotAdapter:
         self._obstacle_avoid.Init()
         self._init_robot_state_client()
         self._init_camera_clients()
-        self._motion_ready = False
-        self._manual_mode_active = False
-        self._remote_commands_from_api = False
-        self._manual_mode_switch_original = None
-        self._obstacle_avoid_usable = True
+        with self._motion_lock:
+            self._motion_ready = False
+            self._manual_mode_active = False
+            self._remote_commands_from_api = False
+            self._manual_mode_switch_original = None
+            self._obstacle_avoid_usable = True
+            self._locomotion_state = "idle"
         self._next_service_refresh_at = 0.0
+        _log.info("go2 connected, locomotion_state=idle", extra={"adapter": "go2", "op": "connect"})
         self._maybe_refresh_service_states(force=True)
 
     def disconnect(self) -> None:
@@ -168,10 +193,12 @@ class Go2RobotAdapter:
         self._sport = None
         self._obstacle_avoid = None
         self._robot_state_client = None
-        self._motion_ready = False
-        self._manual_mode_active = False
-        self._remote_commands_from_api = False
-        self._manual_mode_switch_original = None
+        with self._motion_lock:
+            self._motion_ready = False
+            self._manual_mode_active = False
+            self._remote_commands_from_api = False
+            self._manual_mode_switch_original = None
+            self._locomotion_state = "disconnected"
         with self._service_state_lock:
             self._service_states = {}
 
@@ -194,11 +221,69 @@ class Go2RobotAdapter:
         with self._motion_lock:
             if self._sport is None:
                 raise RuntimeError("Go2 sport client is not connected.")
-            if self._motion_ready:
-                return
+            snapshot = self._get_locomotion_snapshot()
+            if (
+                snapshot.locomotion_state in ("ready", "moving")
+                and snapshot.motion_mode in _DDS_READY_MOTION_MODES
+                and snapshot.sport_mode_error in (None, 0)
+            ):
+                return  # idempotent
 
-            self._call_activation_step("StandUp", settle_seconds=1.5)
-            self._motion_ready = True
+            _log.info(
+                "go2 activate() called, locomotion_state=%s → activating",
+                snapshot.locomotion_state,
+                extra={"adapter": "go2", "op": "activate"},
+            )
+            self._locomotion_state = "activating"
+            self._motion_ready = False
+            try:
+                self.stop_move()
+                self._run_activation_sequence()
+                self.ensure_motion_ready(timeout=15.0, allow_recovery=True)
+                self._locomotion_state = "ready"
+                self._motion_ready = True
+                _log.info("go2 activate() completed, locomotion_state=ready", extra={"adapter": "go2", "op": "activate"})
+            except Exception:
+                failed_snapshot = self._get_locomotion_snapshot()
+                self._locomotion_state = failed_snapshot.locomotion_state if failed_snapshot.locomotion_state not in ("ready", "moving") else "fault"
+                self._motion_ready = False
+                raise
+
+    def ensure_motion_ready(self, timeout: float = 5.0, allow_recovery: bool = False) -> None:
+        """Block until locomotion_state is ready/moving, or raise on timeout/fault."""
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            snapshot = self._get_locomotion_snapshot()
+            state = snapshot.locomotion_state
+            if state in ("ready", "moving"):
+                # The Unitree SDK publishes SportModeState.mode over DDS; require it
+                # to reach a ready motion mode before we report readiness.
+                if snapshot.motion_mode in _DDS_READY_MOTION_MODES:
+                    return
+            if allow_recovery and self._locomotion_state == "activating":
+                time.sleep(0.05)
+                continue
+            if state == "fault":
+                raise RuntimeError(
+                    "Robot has an active fault "
+                    f"(motion_mode={snapshot.motion_mode!r}, sport_mode_error={snapshot.sport_mode_error!r}); "
+                    "call activate() after resolving."
+                )
+            if state in ("damped", "disconnected"):
+                raise RuntimeError(
+                    "Robot requires activation "
+                    f"(locomotion_state={state!r}, motion_mode={snapshot.motion_mode!r}, "
+                    f"sport_mode_error={snapshot.sport_mode_error!r}); call activate() first."
+                )
+            time.sleep(0.05)
+        snapshot = self._get_locomotion_snapshot()
+        with self._service_state_lock:
+            sport_svc = self._service_states.get("sport_mode")
+        raise TimeoutError(
+            f"ensure_motion_ready() timed out after {timeout}s "
+            f"(locomotion_state={snapshot.locomotion_state!r}, motion_mode={snapshot.motion_mode!r}, "
+            f"sport_mode_error={snapshot.sport_mode_error!r}, sport_service_status={sport_svc!r})."
+        )
 
     # ------------------------------------------------------------------
     # Motion
@@ -231,10 +316,30 @@ class Go2RobotAdapter:
             result = self._sport.Move(vx, vy, vyaw)
             if result not in (None, 0):
                 raise RuntimeError(f"SportClient.Move failed with code={result}.")
+            with self._motion_lock:
+                if self._locomotion_state == "ready":
+                    self._locomotion_state = "moving"
         except Exception as exc:
             _log.warning(
                 "go2 Move failed",
                 extra={"adapter": "go2", "op": "send_velocity", "err": str(exc)},
+            )
+
+    def stop_move(self) -> None:
+        """Call StopMove() only — preserves posture, does not damp."""
+        if self._sport is None:
+            return
+        try:
+            result = self._sport.StopMove()
+            if result not in (None, 0):
+                raise RuntimeError(f"SportClient.StopMove failed with code={result}.")
+            with self._motion_lock:
+                if self._locomotion_state == "moving":
+                    self._locomotion_state = "ready"
+        except Exception as exc:
+            _log.warning(
+                "go2 StopMove failed",
+                extra={"adapter": "go2", "op": "stop_move", "err": str(exc)},
             )
 
     def stop(self) -> None:
@@ -248,16 +353,25 @@ class Go2RobotAdapter:
                         "go2 manual stop failed",
                         extra={"adapter": "go2", "op": "stop.manual_move", "err": str(exc)},
                     )
+        self.stop_move()
+
+    def damp(self) -> None:
+        """StopMove() + Damp() — transitions to damped state, requires activate() to recover."""
+        self.stop_move()
         if self._sport is None:
             return
         try:
-            result = self._sport.StopMove()
+            result = self._sport.Damp()
             if result not in (None, 0):
-                raise RuntimeError(f"SportClient.StopMove failed with code={result}.")
+                raise RuntimeError(f"SportClient.Damp failed with code={result}.")
+            with self._motion_lock:
+                self._locomotion_state = "damped"
+                self._motion_ready = False
+                self._manual_mode_active = False
         except Exception as exc:
             _log.warning(
-                "go2 StopMove failed",
-                extra={"adapter": "go2", "op": "stop.StopMove", "err": str(exc)},
+                "go2 Damp failed",
+                extra={"adapter": "go2", "op": "damp", "err": str(exc)},
             )
 
     def sit_down(self) -> None:
@@ -268,25 +382,36 @@ class Go2RobotAdapter:
         self._manual_mode_active = False
 
     def emergency_stop(self) -> None:
-        """Best-effort software e-stop: zero velocity + passive damp.
+        """Best-effort software e-stop: StopMove + Damp + latch damped state.
 
         Go2 has no dedicated hardware e-stop API through SportClient.
+        Requires reset_estop() + activate() before motion can resume.
         """
-        self.stop()
+        _log.warning(
+            "go2 emergency_stop triggered, locomotion_state=%s",
+            self._locomotion_state,
+            extra={"adapter": "go2", "op": "emergency_stop"},
+        )
         self._release_manual_command_source(restore_switch=True)
-        if self._sport is None:
-            return
-        try:
-            result = self._sport.Damp()
-            if result not in (None, 0):
-                raise RuntimeError(f"SportClient.Damp failed with code={result}.")
-            self._motion_ready = False
+        with self._motion_lock:
             self._manual_mode_active = False
-        except Exception as exc:
-            _log.warning(
-                "go2 Damp failed",
-                extra={"adapter": "go2", "op": "emergency_stop.Damp", "err": str(exc)},
-            )
+        self.damp()
+
+    # ------------------------------------------------------------------
+    # Locomotion readiness
+    # ------------------------------------------------------------------
+
+    @property
+    def locomotion_state(self) -> str:
+        return self._get_locomotion_snapshot().locomotion_state
+
+    @property
+    def can_move(self) -> bool:
+        return self._get_locomotion_snapshot().can_move
+
+    @property
+    def block_reason(self) -> str | None:
+        return self._get_locomotion_snapshot().block_reason
 
     # ------------------------------------------------------------------
     # State & telemetry
@@ -335,6 +460,12 @@ class Go2RobotAdapter:
 
         faults.extend(self._build_service_faults())
 
+        service_states_snap: dict[str, int] = {}
+        with self._service_state_lock:
+            service_states_snap = dict(self._service_states)
+        sport_svc = service_states_snap.get("sport_mode")
+        loco_snapshot = self._get_locomotion_snapshot(latest_state=state, sport_service_status=sport_svc)
+
         return RobotState(
             battery_percent=battery_percent,
             battery_voltage_v=battery_voltage_v,
@@ -346,6 +477,9 @@ class Go2RobotAdapter:
             sport_mode_error=sport_mode_error,
             motion_mode=motion_mode,
             bms_status=bms_status_raw,
+            locomotion_state=loco_snapshot.locomotion_state,
+            can_move=loco_snapshot.can_move,
+            block_reason=loco_snapshot.block_reason,
         )
 
     def get_pose(self) -> Pose | None:
@@ -477,7 +611,10 @@ class Go2RobotAdapter:
         if method is not None:
             try:
                 method()
-                self._motion_ready = False
+                with self._motion_lock:
+                    self._motion_ready = False
+                    if self._locomotion_state != "disconnected":
+                        self._locomotion_state = "idle"
                 return
             except Exception as exc:
                 _log.warning(
@@ -485,7 +622,10 @@ class Go2RobotAdapter:
                     method_name,
                     extra={"adapter": "go2", "op": f"shutdown.{method_name}", "err": str(exc)},
                 )
-        self._motion_ready = False
+        with self._motion_lock:
+            self._motion_ready = False
+            if self._locomotion_state != "disconnected":
+                self._locomotion_state = "idle"
 
     def _call_activation_step(self, method_name: str, settle_seconds: float) -> None:
         if self._sport is None:
@@ -500,6 +640,66 @@ class Go2RobotAdapter:
             raise RuntimeError(f"SportClient.{method_name} failed with code={result}.")
         if settle_seconds > 0:
             time.sleep(settle_seconds)
+
+    def _run_activation_sequence(self) -> None:
+        motion_mode, sport_mode_error = self._get_latest_motion_flags()
+
+        if self._needs_recovery_stand(motion_mode, sport_mode_error) or self._needs_fault_recovery_stand(
+            motion_mode, sport_mode_error
+        ):
+            if self._needs_fault_recovery_stand(motion_mode, sport_mode_error):
+                # Damp resets motor controllers; StandDown is skipped because
+                # motion_mode=0 means the robot is already idle/seated and
+                # StandDown silently no-ops in that state on Go2 firmware.
+                self._call_activation_step("Damp", settle_seconds=2.0)
+            self._call_activation_step("RecoveryStand", settle_seconds=2.5)
+            self._call_activation_step("BalanceStand", settle_seconds=1.0)
+        elif self._needs_balance_stand(motion_mode, sport_mode_error):
+            self._call_activation_step("BalanceStand", settle_seconds=1.0)
+        else:
+            self._call_activation_step("StandUp", settle_seconds=1.5)
+
+        motion_mode, sport_mode_error = self._get_latest_motion_flags()
+        if self._needs_recovery_stand(motion_mode, sport_mode_error) or self._needs_fault_recovery_stand(
+            motion_mode, sport_mode_error
+        ):
+            self._call_activation_step("RecoveryStand", settle_seconds=2.5)
+            self._call_activation_step("BalanceStand", settle_seconds=1.0)
+            motion_mode, sport_mode_error = self._get_latest_motion_flags()
+
+        if self._needs_balance_stand(motion_mode, sport_mode_error):
+            self._call_activation_step("BalanceStand", settle_seconds=1.0)
+
+    def _get_latest_motion_flags(self) -> tuple[int | None, int | None]:
+        with self._state_lock:
+            latest_state = self._latest_state
+        if latest_state is None:
+            return None, None
+        return int(latest_state.mode), int(latest_state.error_code)
+
+    def _needs_recovery_stand(self, motion_mode: int | None, sport_mode_error: int | None) -> bool:
+        return (
+            sport_mode_error == _SPORT_ERROR_DAMPING
+            or motion_mode in _DDS_DAMPING_MOTION_MODES
+            or self._locomotion_state == "damped"
+        )
+
+    def _needs_balance_stand(self, motion_mode: int | None, sport_mode_error: int | None) -> bool:
+        return (
+            sport_mode_error == _SPORT_ERROR_STANDING_LOCK
+            or motion_mode in _DDS_STANDING_LOCK_MOTION_MODES
+        )
+
+    def _needs_fault_recovery_stand(self, motion_mode: int | None, sport_mode_error: int | None) -> bool:
+        """Use RecoveryStand for generic sport faults that still report an idle posture.
+
+        This catches post-fall or partially-cleared states where DDS no longer
+        reports damping/standing-lock but the robot is not actually motion-ready.
+        """
+        return (
+            sport_mode_error not in (None, 0, _SPORT_ERROR_DAMPING, _SPORT_ERROR_STANDING_LOCK)
+            and motion_mode in _DDS_IDLE_MOTION_MODES
+        )
 
     def _claim_manual_command_source(self) -> None:
         if self._obstacle_avoid is None:
@@ -675,3 +875,79 @@ class Go2RobotAdapter:
     def _get_camera_status(self) -> str:
         with self._camera_status_lock:
             return self._camera_status
+
+    def _get_locomotion_snapshot(
+        self,
+        *,
+        latest_state: SportModeState_ | None = None,
+        sport_service_status: int | None | object = _UNSET,
+    ) -> _LocomotionSnapshot:
+        with self._motion_lock:
+            command_state = self._locomotion_state
+            sport_connected = self._sport is not None
+        if latest_state is None:
+            with self._state_lock:
+                latest_state = self._latest_state
+        if sport_service_status is _UNSET:
+            with self._service_state_lock:
+                sport_service_status = self._service_states.get("sport_mode")
+
+        motion_mode = int(latest_state.mode) if latest_state is not None else None
+        sport_mode_error = int(latest_state.error_code) if latest_state is not None else None
+        locomotion_state = self._derive_locomotion_state(
+            command_state=command_state,
+            sport_connected=sport_connected,
+            motion_mode=motion_mode,
+            sport_mode_error=sport_mode_error,
+            sport_service_status=sport_service_status,
+        )
+        can_move = locomotion_state in ("ready", "moving")
+        return _LocomotionSnapshot(
+            locomotion_state=locomotion_state,
+            can_move=can_move,
+            block_reason=self._block_reason_for_state(locomotion_state, sport_connected),
+            motion_mode=motion_mode,
+            sport_mode_error=sport_mode_error,
+        )
+
+    def _derive_locomotion_state(
+        self,
+        *,
+        command_state: str,
+        sport_connected: bool,
+        motion_mode: int | None,
+        sport_mode_error: int | None,
+        sport_service_status: int | None | object,
+    ) -> str:
+        if not sport_connected or command_state == "disconnected":
+            return "disconnected"
+        if sport_service_status not in (_UNSET, None, 1):
+            return "fault"
+        if command_state == "fault":
+            return "fault"
+        if sport_mode_error == _SPORT_ERROR_DAMPING or motion_mode in _DDS_DAMPING_MOTION_MODES or command_state == "damped":
+            return "damped"
+        if sport_mode_error is not None and sport_mode_error != 0:
+            return "fault"
+        if motion_mode in _DDS_READY_MOTION_MODES:
+            if motion_mode == 3 and command_state == "moving":
+                return "moving"
+            return "ready"
+        if motion_mode in _DDS_IDLE_MOTION_MODES:
+            return "idle"
+        if command_state == "activating":
+            return "activating"
+        return command_state
+
+    def _block_reason_for_state(self, locomotion_state: str, sport_connected: bool) -> str | None:
+        if locomotion_state in ("ready", "moving"):
+            return None
+        if locomotion_state == "disconnected" or not sport_connected:
+            return "sdk_not_connected"
+        if locomotion_state in ("idle", "activating"):
+            return "robot_idle"
+        if locomotion_state == "damped":
+            return "robot_damped"
+        if locomotion_state == "fault":
+            return "fault_present"
+        return "sdk_not_connected"

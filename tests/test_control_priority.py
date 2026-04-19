@@ -9,6 +9,9 @@ from src.models import CommandSource, MissionStatus, MotionCommand
 
 
 class DummyAdapter:
+    can_move = True
+    block_reason = None
+
     def __init__(self) -> None:
         self.commands: list[tuple[float, float, float]] = []
         self.stop_count = 0
@@ -104,6 +107,19 @@ def test_watchdog_stops_stale_manual_teleop() -> None:
         while time.time() < deadline and adapter.stop_count == 0:
             time.sleep(0.02)
         assert adapter.stop_count >= 1
+    finally:
+        control.shutdown()
+
+
+def test_watchdog_does_not_fire_before_first_manual_teleop_command() -> None:
+    adapter = DummyAdapter()
+    control = ControlCore(adapter=adapter, max_vx=0.5, max_vyaw=1.0, watchdog_timeout_ms=120)
+    control.start()
+    try:
+        assert control.take_manual()
+        stop_count_after_take_manual = adapter.stop_count
+        time.sleep(0.2)
+        assert adapter.stop_count == stop_count_after_take_manual
     finally:
         control.shutdown()
 

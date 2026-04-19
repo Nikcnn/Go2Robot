@@ -95,6 +95,18 @@ _STRUCTURED_LOG_MAP: dict[str, tuple[str, str]] = {
     "movement_blocked": ("warn", "movement_blocked"),
 }
 
+_MANUAL_ENTRY_ALLOWED_STATES = {
+    EffectiveState.READY,
+    EffectiveState.STANDING,
+    EffectiveState.MOVING,
+}
+
+
+def _manual_mode_block_reason(effective: EffectiveState) -> str | None:
+    if effective in _MANUAL_ENTRY_ALLOWED_STATES:
+        return None
+    return f"manual mode is blocked while effective state is '{effective.value}'"
+
 
 def create_app(config: AppConfig | None = None, config_path: str | Path = "config/app_config.yaml") -> FastAPI:
     config_file = Path(config_path).resolve()
@@ -216,6 +228,26 @@ def create_app(config: AppConfig | None = None, config_path: str | Path = "confi
     @app.get("/api/status", response_model=StatusResponse)
     def get_status() -> StatusResponse:
         current = runtime.control.current()
+        # Read adapter status through synchronized properties without forcing a
+        # full telemetry refresh on every HTTP request.
+        loco_state: str = getattr(
+            runtime.adapter,
+            "locomotion_state",
+            getattr(runtime.adapter, "_locomotion_state", "unknown"),
+        )
+        adapter_can_move: bool = getattr(runtime.adapter, "can_move", False)
+        adapter_block: str | None = getattr(runtime.adapter, "block_reason", None)
+
+        # Compose control_mode and override block_reason when ESTOP/manual applies.
+        ctrl_mode = current.robot_mode.value.lower()  # "auto"|"manual"|"estop"
+        if current.estop_latched:
+            adapter_can_move = False
+            adapter_block = "estop_latched"
+        elif current.robot_mode.value == "MANUAL":
+            adapter_can_move = False
+            adapter_block = "mode_rules"
+
+        activation_required = loco_state in ("idle", "damped", "activating", "disconnected", "fault")
         return StatusResponse(
             robot_mode=current.robot_mode.value,
             mission_status=current.mission_status.value,
@@ -223,6 +255,11 @@ def create_app(config: AppConfig | None = None, config_path: str | Path = "confi
             route_id=current.route_id,
             mission_id=current.mission_id,
             active_step_id=current.active_step_id,
+            control_mode=ctrl_mode,
+            locomotion_state=loco_state,
+            can_move=adapter_can_move,
+            block_reason=adapter_block,
+            activation_required=activation_required,
         )
 
     @app.get("/api/mission/current", response_model=MissionCurrentResponse)
@@ -271,6 +308,13 @@ def create_app(config: AppConfig | None = None, config_path: str | Path = "confi
 
     @app.post("/api/mode/manual/take", response_model=ApiMessage)
     def take_manual() -> ApiMessage:
+        effective = runtime.state_machine.get_effective()
+        block_reason = _manual_mode_block_reason(effective)
+        if block_reason:
+            raise HTTPException(
+                status_code=409,
+                detail=block_reason[0].upper() + block_reason[1:],
+            )
         try:
             if not runtime.control.take_manual():
                 raise HTTPException(status_code=409, detail="Manual mode cannot be taken in the current state.")
@@ -498,11 +542,19 @@ def _dispatch_action(action: str, runtime: AppRuntime, emit_event) -> tuple[bool
         if ctrl.estop_latched:
             ok = ctrl.reset_estop()
             return (True, "") if ok else (False, "ESTOP reset failed internally")
-        # UNKNOWN: No SDK fault-reset API is available for sport mode errors.
-        # Hardware-level faults (1001/1002) typically resolve after activate().
-        return False, "UNKNOWN: no SDK fault-reset API; use stand_up to attempt recovery"
+        try:
+            ok = ctrl.activate_robot()
+            if not ok:
+                return False, "robot cannot be activated in current state"
+        except Exception as exc:
+            return False, str(exc)
+        return True, "recovery attempted via activate()"
 
     if action == "manual_mode":
+        effective = runtime.state_machine.get_effective()
+        block_reason = _manual_mode_block_reason(effective)
+        if block_reason:
+            return False, block_reason
         try:
             ok = ctrl.take_manual()
             if not ok:

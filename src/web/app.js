@@ -40,10 +40,12 @@ const pressedKeys = new Set();
 let manualActive = false;
 let teleopTimer = null;
 let currentEffectiveState = "";
+let teleopRequestInFlight = false;
+let queuedTeleopCommand = null;
 
 // Actions that are valid per effective state
 const ACTION_ALLOWED_STATES = {
-  stand_up:     ["idle", "standing", "ready", "connecting"],
+  stand_up:     ["idle", "standing", "ready", "connecting", "error", "damping", "standing_lock"],
   stop_motion:  ["ready", "moving", "standing", "paused"],
   pause:        ["ready", "moving"],
   resume:       ["paused"],
@@ -78,7 +80,8 @@ function addEventLine(message) {
   }
 }
 
-async function postJson(url, body = {}) {
+async function postJson(url, body = {}, options = {}) {
+  const { logSuccess = true } = options;
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -90,7 +93,7 @@ async function postJson(url, body = {}) {
     addEventLine(`error: ${detail}`);
     throw new Error(detail);
   }
-  if (payload.message) {
+  if (logSuccess && payload.message) {
     addEventLine(payload.message);
   }
   return payload;
@@ -287,16 +290,37 @@ function computeTeleopCommand() {
   return { vx, vy, vyaw, ts: Date.now() / 1000 };
 }
 
+async function flushQueuedTeleopCommand() {
+  if (teleopRequestInFlight || !queuedTeleopCommand) return;
+  teleopRequestInFlight = true;
+  try {
+    while (queuedTeleopCommand) {
+      const nextCommand = queuedTeleopCommand;
+      queuedTeleopCommand = null;
+      await postJson("/api/teleop/cmd", nextCommand, { logSuccess: false });
+    }
+  } catch (_error) {
+    stopTeleopLoop();
+  } finally {
+    teleopRequestInFlight = false;
+    if (queuedTeleopCommand) {
+      flushQueuedTeleopCommand();
+    }
+  }
+}
+
+function queueTeleopCommand(command) {
+  queuedTeleopCommand = command;
+  flushQueuedTeleopCommand();
+}
+
 function startTeleopLoop() {
   if (teleopTimer) return;
+  queueTeleopCommand(computeTeleopCommand());
   teleopTimer = window.setInterval(async () => {
     if (!manualActive || pressedKeys.size === 0) return;
-    try {
-      await postJson("/api/teleop/cmd", computeTeleopCommand());
-    } catch (_error) {
-      stopTeleopLoop();
-    }
-  }, 100);
+    queueTeleopCommand(computeTeleopCommand());
+  }, 50);
 }
 
 function stopTeleopLoop(sendStop = true) {
@@ -304,8 +328,9 @@ function stopTeleopLoop(sendStop = true) {
     window.clearInterval(teleopTimer);
     teleopTimer = null;
   }
+  queuedTeleopCommand = null;
   if (sendStop && manualActive) {
-    postJson("/api/teleop/cmd", { vx: 0.0, vy: 0.0, vyaw: 0.0, ts: Date.now() / 1000 }).catch(() => {});
+    queueTeleopCommand({ vx: 0.0, vy: 0.0, vyaw: 0.0, ts: Date.now() / 1000 });
   }
 }
 
@@ -338,6 +363,7 @@ function bindKeyboard() {
     if (["KeyW", "KeyS", "KeyA", "KeyD", "KeyQ", "KeyE", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(event.code)) {
       event.preventDefault();
       pressedKeys.add(event.code);
+      queueTeleopCommand(computeTeleopCommand());
       startTeleopLoop();
     }
   });

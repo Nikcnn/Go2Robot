@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import logging
 import threading
 import time
 from collections.abc import Callable
 
 from .models import CommandSource, MissionCurrentResponse, MissionStatus, MotionCommand, RobotMode
+
+_log = logging.getLogger(__name__)
 
 
 TERMINAL_STATUSES = {
@@ -113,7 +116,10 @@ class ControlCore:
             previous_mode = self.mode
             previous_status = self.mission_status
             self.mode = RobotMode.MANUAL
-            self.last_teleop_ts = time.monotonic()
+            # Start the watchdog only after the first manual teleop packet arrives.
+            # Entering MANUAL already issues adapter.stop(), so timing out before the
+            # operator has sent any command only creates noisy warnings.
+            self.last_teleop_ts = 0.0
             self._watchdog_fired = False
             pause_needed = self.mission_status in {MissionStatus.STARTING, MissionStatus.RUNNING}
             if pause_needed:
@@ -134,6 +140,11 @@ class ControlCore:
                 self._watchdog_fired = False
                 self._condition.notify_all()
             raise
+        _log.info(
+            "manual takeover: mode %s→%s, mission_status=%s",
+            previous_mode.value, self.mode.value, self.mission_status.value,
+            extra={"op": "take_manual"},
+        )
         self._emit("mode_changed", {"from": previous_mode.value, "to": self.mode.value, "reason": "manual_take"})
         if pause_needed:
             self._emit("mission_paused", {"reason": "manual_takeover", "mission_id": self.mission_id})
@@ -145,6 +156,8 @@ class ControlCore:
                 return False
             previous_mode = self.mode
             self.mode = RobotMode.AUTO
+            self.last_teleop_ts = 0.0
+            self._watchdog_fired = False
             self._condition.notify_all()
         try:
             self.adapter.stop()
@@ -154,6 +167,11 @@ class ControlCore:
                 self.mode = previous_mode
                 self._condition.notify_all()
             raise
+        _log.info(
+            "manual released: mode %s→AUTO, mission_status=%s (mission does NOT auto-resume)",
+            previous_mode.value, self.mission_status.value,
+            extra={"op": "release_manual"},
+        )
         self._emit("mode_changed", {"from": previous_mode.value, "to": self.mode.value, "reason": "manual_release"})
         return True
 
@@ -194,7 +212,9 @@ class ControlCore:
             if self.estop_latched:
                 return False
 
+        _log.info("activate_robot called, mode=%s", self.mode.value, extra={"op": "activate_robot"})
         self.adapter.activate()
+        _log.info("activate_robot completed", extra={"op": "activate_robot"})
         self._emit("robot_activated", {"mission_id": self.mission_id, "robot_mode": self.mode.value})
         return True
 
@@ -224,6 +244,11 @@ class ControlCore:
             self._abort_requested = True
             self.mission_status = MissionStatus.ESTOPPED
             self._condition.notify_all()
+        _log.warning(
+            "ESTOP latched, previous_mode=%s, mission_id=%s",
+            previous_mode.value, self.mission_id,
+            extra={"op": "latch_estop"},
+        )
         self.adapter.emergency_stop()
         self._emit("mode_changed", {"from": previous_mode.value, "to": self.mode.value, "reason": "estop"})
         self._emit("estop_latched", {"mission_id": self.mission_id})
@@ -237,6 +262,11 @@ class ControlCore:
             self.estop_latched = False
             self.mode = RobotMode.AUTO
             self._condition.notify_all()
+        _log.info(
+            "ESTOP reset, mode=%s→AUTO; activate() required before motion",
+            previous_mode.value,
+            extra={"op": "reset_estop"},
+        )
         self._emit("mode_changed", {"from": previous_mode.value, "to": self.mode.value, "reason": "reset_estop"})
         self._emit("estop_reset", {"mission_id": self.mission_id})
         return True
@@ -267,6 +297,27 @@ class ControlCore:
         if abs(vx) < 1e-6 and abs(vy) < 1e-6 and abs(vyaw) < 1e-6:
             self.adapter.stop()
         else:
+            # Check adapter physical readiness before forwarding Move()
+            adapter_can_move = getattr(self.adapter, "can_move", True)
+            if not adapter_can_move:
+                reason = getattr(self.adapter, "block_reason", None) or "unknown"
+                _log.warning(
+                    "Move blocked by adapter: %s (source=%s vx=%.3f vy=%.3f vyaw=%.3f)",
+                    reason, source.value, vx, vy, vyaw,
+                    extra={"op": "submit", "block_reason": reason},
+                )
+                self._emit("movement_blocked", {
+                    "reason": reason,
+                    "source": source.value,
+                    "vx": vx, "vy": vy, "vyaw": vyaw,
+                    "mission_id": self.mission_id,
+                })
+                return False
+            _log.debug(
+                "Move: source=%s vx=%.3f vy=%.3f vyaw=%.3f",
+                source.value, vx, vy, vyaw,
+                extra={"op": "submit"},
+            )
             self.adapter.send_velocity(vx, vy, vyaw)
         return True
 

@@ -121,7 +121,9 @@ Return:
 {"analyzer": "...", "status": "ok|error|not_configured",
  "result": "...", "score": float|None, "details": {...}}
 Implement `frame_diff` (mean abs diff vs reference, threshold from config).
-`simple_presence` returns `{"result":"not_configured"}`.
+`simple_presence` returns a real present/absent decision using lightweight
+classical-CV scoring (reference similarity when available, otherwise
+edge/contrast objectness).
 
 # Storage
 runs/mission_<id>/

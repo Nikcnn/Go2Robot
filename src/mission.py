@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import threading
 import time
 from pathlib import Path
@@ -8,7 +9,9 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from .analysis import analyze
-from .models import CheckpointStep, CommandSource, MissionStatus, MotionCommand, RouteModel
+from .models import AnalysisResult, CheckpointStep, CommandSource, MissionStatus, MotionCommand, RouteModel
+
+_log = logging.getLogger(__name__)
 
 
 def load_route_file(path: str | Path) -> RouteModel:
@@ -87,6 +90,20 @@ class MissionManager:
     def _run_mission(self, route: RouteModel) -> None:
         try:
             self.control.mark_running()
+
+            # Ensure physical readiness before first movement step.
+            has_motion = any(s.type in ("move", "rotate") for s in route.steps)
+            if has_motion:
+                ensure = getattr(self.adapter, "ensure_motion_ready", None)
+                if ensure is not None:
+                    _log.info("ensure_motion_ready before first move step")
+                    try:
+                        ensure(timeout=5.0)
+                    except Exception as exc:
+                        _log.warning("ensure_motion_ready failed: %s", exc)
+                        self.control.fail_mission(f"Motion readiness check failed: {exc}")
+                        return
+
             for step in route.steps:
                 if not self.control.wait_until_runnable():
                     break
@@ -129,6 +146,20 @@ class MissionManager:
                     "mission_id": current.mission_id,
                 })
                 return False
+            # After a potential pause/resume, check adapter readiness (handles re-activation need).
+            if not getattr(self.adapter, "can_move", True):
+                ensure = getattr(self.adapter, "ensure_motion_ready", None)
+                if ensure is not None:
+                    try:
+                        ensure(timeout=2.0)
+                    except Exception as exc:
+                        self.control.stop_motion()
+                        self.event_callback("movement_blocked", {
+                            "reason": str(exc),
+                            "vx": vx, "vy": vy, "vyaw": vyaw,
+                            "mission_id": self.control.current().mission_id,
+                        })
+                        return False
             self.control.submit(MotionCommand(vx=vx, vy=vy, vyaw=vyaw), CommandSource.AUTO)
             chunk = min(period, remaining)
             time.sleep(chunk)
@@ -143,7 +174,7 @@ class MissionManager:
 
         frame = self.adapter.capture_frame()
         telemetry_snapshot = self.telemetry.get_latest().model_dump(mode="json")
-        analysis_result = analyze(
+        analysis_result: AnalysisResult = analyze(
             frame,
             step.analyzer,
             {
@@ -151,10 +182,18 @@ class MissionManager:
                 "threshold": self.analysis_threshold,
             },
         )
-        self.storage.save_checkpoint(step.waypoint_id, frame, analysis_result, telemetry_snapshot)
+        checkpoint = self.storage.save_checkpoint(step.waypoint_id, frame, analysis_result, telemetry_snapshot)
+        if checkpoint and checkpoint.get("image_path"):
+            analysis_result.image_path = checkpoint["image_path"]
         self.event_callback(
             "checkpoint_processed",
-            {"waypoint_id": step.waypoint_id, "analyzer": analysis_result.get("analyzer"), "result": analysis_result.get("result")},
+            {
+                "waypoint_id": step.waypoint_id,
+                "analyzer": analysis_result.analyzer_name,
+                "result": analysis_result.label,
+                "passed": analysis_result.passed,
+                "score": analysis_result.score,
+            },
         )
         return True
 

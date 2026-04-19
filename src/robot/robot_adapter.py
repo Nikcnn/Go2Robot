@@ -24,9 +24,17 @@ class RobotAdapterProtocol(Protocol):
 
     capabilities: AdapterCapabilities
 
+    @property
+    def locomotion_state(self) -> str: ...
+    @property
+    def can_move(self) -> bool: ...
+    @property
+    def block_reason(self) -> str | None: ...
+
     def activate(self) -> None: ...
     def connect(self) -> None: ...
     def disconnect(self) -> None: ...
+    def ensure_motion_ready(self, timeout: float = 5.0, allow_recovery: bool = False) -> None: ...
     def enter_manual_mode(self) -> None: ...
     def emergency_stop(self) -> None: ...
     def exit_manual_mode(self) -> None: ...
@@ -59,27 +67,64 @@ class MockRobotAdapter:
         self._battery_base = 92.0
         # motion_mode mirrors SportModeState_.mode: 0=idle, 3=locomotion
         self._motion_mode = 0
+        self._locomotion_state = "disconnected"
+
+    @property
+    def locomotion_state(self) -> str:
+        with self._lock:
+            return self._locomotion_state
+
+    @property
+    def can_move(self) -> bool:
+        with self._lock:
+            return self._locomotion_state in ("ready", "moving")
+
+    @property
+    def block_reason(self) -> str | None:
+        state = self.locomotion_state
+        if state in ("ready", "moving"):
+            return None
+        if state == "damped":
+            return "robot_damped"
+        if state == "disconnected":
+            return "sdk_not_connected"
+        return "robot_idle"
 
     def connect(self) -> None:
         with self._lock:
             self._connected = True
             self._motion_mode = 3  # locomotion — mock is always ready after connect
+            self._locomotion_state = "ready"
             self._last_update = time.monotonic()
 
     def activate(self) -> None:
-        return
+        with self._lock:
+            self._locomotion_state = "ready"
 
     def disconnect(self) -> None:
         with self._lock:
             self._integrate_locked()
             self._connected = False
             self._motion_mode = 0
+            self._locomotion_state = "disconnected"
             self._vx = 0.0
             self._vy = 0.0
             self._vyaw = 0.0
 
+    def ensure_motion_ready(self, timeout: float = 5.0, allow_recovery: bool = False) -> None:
+        """Mock is always ready after connect; raises only if damped/disconnected."""
+        state = self.locomotion_state
+        if state in ("ready", "moving"):
+            return
+        if state == "damped":
+            raise RuntimeError("Mock adapter is damped; call activate() first.")
+        if state == "disconnected":
+            raise RuntimeError("Mock adapter is not connected; call connect() first.")
+
     def emergency_stop(self) -> None:
         self.stop()
+        with self._lock:
+            self._locomotion_state = "damped"
 
     def enter_manual_mode(self) -> None:
         return
@@ -93,6 +138,8 @@ class MockRobotAdapter:
             self._vx = float(vx)
             self._vy = float(vy)
             self._vyaw = float(vyaw)
+            if self._locomotion_state == "ready":
+                self._locomotion_state = "moving"
 
     def stop(self) -> None:
         with self._lock:
@@ -100,6 +147,8 @@ class MockRobotAdapter:
             self._vx = 0.0
             self._vy = 0.0
             self._vyaw = 0.0
+            if self._locomotion_state == "moving":
+                self._locomotion_state = "ready"
 
     def sit_down(self) -> None:
         self.stop()
@@ -112,6 +161,16 @@ class MockRobotAdapter:
             current_draw = 1.1 + abs(self._vx) * 4.0 + abs(self._vy) * 4.0 + abs(self._vyaw) * 1.5
             voltage = 27.6 + (battery / 100.0) * 2.0
             motion_mode = self._motion_mode
+            loco = self._locomotion_state
+            can = loco in ("ready", "moving")
+            blk: str | None = None
+            if not can:
+                if loco == "damped":
+                    blk = "robot_damped"
+                elif loco == "disconnected":
+                    blk = "sdk_not_connected"
+                else:
+                    blk = "robot_idle"
             return RobotState(
                 battery_percent=round(battery, 1),
                 battery_voltage_v=round(voltage, 2),
@@ -123,6 +182,9 @@ class MockRobotAdapter:
                 sport_mode_error=0,
                 motion_mode=motion_mode,
                 bms_status=0,
+                locomotion_state=loco,
+                can_move=can,
+                block_reason=blk,
             )
 
     def get_pose(self) -> Pose | None:

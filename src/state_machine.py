@@ -12,9 +12,11 @@ if TYPE_CHECKING:
 # Any code not listed here is explicitly marked UNKNOWN.
 _SPORT_ERROR_DAMPING = 1001
 _SPORT_ERROR_STANDING_LOCK = 1002
+_SPORT_ERROR_BOOT_FAULT = 100  # 0x64 — observed on cold boot before motor controllers settle
 
 _SPORT_ERROR_LABELS: dict[int, str] = {
     0: "none",
+    _SPORT_ERROR_BOOT_FAULT: "boot_fault",
     _SPORT_ERROR_DAMPING: "damping",
     _SPORT_ERROR_STANDING_LOCK: "standing_lock",
 }
@@ -200,7 +202,7 @@ class RobotStateMachine:
             EffectiveState.IDLE: "motion_mode=idle: robot not in locomotion mode; call stand_up/activate first",
             EffectiveState.DAMPING: "sport_mode_error=1001: robot is damping; activate() required after reset",
             EffectiveState.STANDING_LOCK: "sport_mode_error=1002: robot is standing-locked",
-            EffectiveState.ERROR: "sport mode error active",
+            EffectiveState.ERROR: "sport mode error active — press stand_up or reset_fault to recover",
             EffectiveState.ESTOP: "e-stop latched",
             EffectiveState.DISCONNECTED: "robot not connected",
             EffectiveState.CONNECTING: "robot connecting, no telemetry yet",

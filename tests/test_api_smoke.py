@@ -6,8 +6,9 @@ import yaml
 from fastapi.testclient import TestClient
 
 from tests import make_test_dir
-from src.api import _start_runtime, create_app
+from src.api import _dispatch_action, _manual_mode_block_reason, _start_runtime, create_app
 from src.config import AppConfig, RobotConfig
+from src.state_machine import EffectiveState
 
 
 class _StartupControl:
@@ -158,3 +159,67 @@ def test_api_activate_robot_endpoint_succeeds_in_mock_mode() -> None:
 
     assert response.status_code == 200
     assert response.json()["ok"] is True
+
+
+class _DispatchControl:
+    def __init__(self) -> None:
+        self.estop_latched = False
+        self.activate_calls = 0
+        self.reset_estop_calls = 0
+        self.take_manual_calls = 0
+
+    def activate_robot(self) -> bool:
+        self.activate_calls += 1
+        return True
+
+    def reset_estop(self) -> bool:
+        self.reset_estop_calls += 1
+        return True
+
+    def take_manual(self) -> bool:
+        self.take_manual_calls += 1
+        return True
+
+
+class _DispatchStateMachine:
+    def __init__(self, effective: EffectiveState) -> None:
+        self._effective = effective
+
+    def get_effective(self) -> EffectiveState:
+        return self._effective
+
+
+class _DispatchRuntime:
+    def __init__(self, effective: EffectiveState) -> None:
+        self.control = _DispatchControl()
+        self.state_machine = _DispatchStateMachine(effective)
+
+
+def test_manual_mode_block_reason_rejects_faulted_state() -> None:
+    reason = _manual_mode_block_reason(EffectiveState.ERROR)
+    assert reason == "manual mode is blocked while effective state is 'error'"
+
+
+def test_manual_mode_block_reason_allows_ready_state() -> None:
+    assert _manual_mode_block_reason(EffectiveState.READY) is None
+
+
+def test_reset_fault_action_attempts_recovery_via_activate() -> None:
+    runtime = _DispatchRuntime(EffectiveState.ERROR)
+
+    success, reason = _dispatch_action("reset_fault", runtime, lambda *_args, **_kwargs: None)
+
+    assert success is True
+    assert reason == "recovery attempted via activate()"
+    assert runtime.control.activate_calls == 1
+    assert runtime.control.reset_estop_calls == 0
+
+
+def test_manual_mode_action_rejects_faulted_effective_state() -> None:
+    runtime = _DispatchRuntime(EffectiveState.ERROR)
+
+    success, reason = _dispatch_action("manual_mode", runtime, lambda *_args, **_kwargs: None)
+
+    assert success is False
+    assert reason == "manual mode is blocked while effective state is 'error'"
+    assert runtime.control.take_manual_calls == 0

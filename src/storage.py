@@ -10,6 +10,8 @@ from pathlib import Path
 import cv2
 from pydantic import BaseModel
 
+from .models import AnalysisResult
+
 
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
@@ -102,7 +104,13 @@ class StorageManager:
                 return
             self._append_jsonl(self._active_run.run_dir / "telemetry.jsonl", snapshot)
 
-    def save_checkpoint(self, waypoint_id: str, frame, analysis_result: dict, telemetry_snapshot: dict) -> dict | None:
+    def save_checkpoint(
+        self,
+        waypoint_id: str,
+        frame,
+        analysis_result: AnalysisResult | dict,
+        telemetry_snapshot: dict,
+    ) -> dict | None:
         with self._lock:
             if self._active_run is None:
                 return None
@@ -115,10 +123,24 @@ class StorageManager:
                 cv2.imwrite(str(image_path), frame)
                 image_rel_path = image_path.relative_to(self._active_run.run_dir).as_posix()
 
+            # Serialize AnalysisResult dataclass or accept legacy dict
+            if isinstance(analysis_result, AnalysisResult):
+                analysis_dict = analysis_result.to_dict()
+                if image_rel_path and not analysis_result.image_path:
+                    analysis_dict["image_path"] = image_rel_path
+            else:
+                analysis_dict = analysis_result
+
             analysis_payload = {
                 "waypoint_id": waypoint_id,
                 "timestamp": timestamp,
-                "analysis": analysis_result,
+                "mission_id": self._active_run.mission_id,
+                "route_id": self._active_run.route_id,
+                "robot_pose": telemetry_snapshot.get("pose"),
+                "telemetry_snapshot": telemetry_snapshot,
+                "image_path": image_rel_path,
+                "analysis_result": analysis_dict,
+                "mission_status": self._active_run.report.get("mission_status"),
             }
             self._write_json(self._active_run.run_dir / "analysis" / f"{waypoint_id}.json", analysis_payload)
 
@@ -127,7 +149,7 @@ class StorageManager:
                 "timestamp": timestamp,
                 "image_path": image_rel_path,
                 "telemetry": telemetry_snapshot,
-                "analysis": analysis_result,
+                "analysis": analysis_dict,
             }
             self._active_run.report["checkpoints"].append(checkpoint)
             self._active_run.report["analysis_results"].append(analysis_payload)
