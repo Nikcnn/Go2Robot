@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Go2 Inspection MVP</title>
+    <link rel="stylesheet" href="/web/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Safe Test Environment</p>
+          <h1>Go2 Inspection Console</h1>
+          <p class="subtitle">Mock-first route execution, telemetry, events, and camera in one plain web UI.</p>
+        </div>
+        <div class="badge-row">
+          <span class="badge" id="robotMode">Mode: AUTO</span>
+          <span class="badge" id="missionStatus">Mission: IDLE</span>
+          <span class="badge state-badge" id="effectiveBadge">State: —</span>
+        </div>
+      </header>
+
+      <section class="grid">
+
+        <!-- ── State Panel ── -->
+        <article class="card state-card">
+          <h2>Robot State</h2>
+          <dl class="stats">
+            <div>
+              <dt>Connection</dt>
+              <dd id="stConnection">—</dd>
+            </div>
+            <div>
+              <dt>Effective State</dt>
+              <dd><span id="stEffective" class="state-indicator">—</span></dd>
+            </div>
+            <div>
+              <dt>Requested State</dt>
+              <dd id="stRequested">—</dd>
+            </div>
+            <div>
+              <dt>Motion Mode</dt>
+              <dd id="stMotionMode">—</dd>
+            </div>
+            <div>
+              <dt>Sport Error (raw → decoded)</dt>
+              <dd id="stSportError">—</dd>
+            </div>
+            <div>
+              <dt>BMS (raw → decoded)</dt>
+              <dd id="stBms">—</dd>
+            </div>
+            <div>
+              <dt>Battery</dt>
+              <dd id="stBattery">—</dd>
+            </div>
+            <div>
+              <dt>Pose</dt>
+              <dd id="stPose">—</dd>
+            </div>
+            <div>
+              <dt>Last OK Command</dt>
+              <dd id="stLastOk">—</dd>
+            </div>
+            <div>
+              <dt>Last Rejected</dt>
+              <dd id="stLastRejected">—</dd>
+            </div>
+            <div class="wide">
+              <dt>Last Transition</dt>
+              <dd id="stLastTs">—</dd>
+            </div>
+          </dl>
+        </article>
+
+        <!-- ── Control Panel ── -->
+        <article class="card control-action-card">
+          <h2>Robot Control</h2>
+          <div class="button-grid">
+            <button id="actStandBtn"
+              data-action="stand_up"
+              data-allow="idle,standing,ready,connecting">Stand / Ready</button>
+            <button id="actStopBtn"
+              data-action="stop_motion"
+              data-allow="ready,moving,standing,paused">Stop Motion</button>
+            <button id="actPauseBtn"
+              data-action="pause"
+              data-allow="ready,moving">Pause Mission</button>
+            <button id="actResumeBtn"
+              data-action="resume"
+              data-allow="paused">Resume Mission</button>
+            <button id="actManualBtn"
+              data-action="manual_mode"
+              data-allow="ready,standing,moving">Manual Mode</button>
+            <button id="actAutoBtn"
+              data-action="auto_mode"
+              data-allow="ready,standing,moving,paused">Auto Mode</button>
+            <button id="actDampBtn" class="warn-btn"
+              data-action="damping_on"
+              data-allow="ready,moving,standing">Damping On</button>
+            <button id="actResetBtn"
+              data-action="reset_fault"
+              data-allow="error,damping,standing_lock,estop">Reset / Recover</button>
+          </div>
+          <p class="hint">Buttons are disabled when the action is not valid for the current effective state.</p>
+        </article>
+
+        <!-- ── Mission Control (existing) ── -->
+        <article class="card control-card">
+          <h2>Mission Control</h2>
+          <label class="field">
+            <span>Route</span>
+            <input id="routeId" value="demo_route" />
+          </label>
+          <div class="button-grid">
+            <button id="startBtn">Start</button>
+            <button id="pauseBtn">Pause</button>
+            <button id="resumeBtn">Resume</button>
+            <button id="abortBtn">Abort</button>
+            <button id="takeManualBtn">Take Manual</button>
+            <button id="releaseManualBtn">Release Manual</button>
+            <button id="activateRobotBtn">Activate Robot</button>
+            <button class="danger" id="estopBtn">ESTOP</button>
+            <button id="resetEstopBtn">Reset ESTOP</button>
+          </div>
+          <p class="hint">Keyboard teleop while in manual: W/S forward-back, A/D left-right, Q/E yaw, Space stop, X ESTOP.</p>
+        </article>
+
+        <!-- ── Live Status (existing) ── -->
+        <article class="card status-card">
+          <h2>Live Status</h2>
+          <dl class="stats">
+            <div>
+              <dt>Mission ID</dt>
+              <dd id="missionId">-</dd>
+            </div>
+            <div>
+              <dt>Route</dt>
+              <dd id="routeValue">-</dd>
+            </div>
+            <div>
+              <dt>Active Step</dt>
+              <dd id="activeStep">-</dd>
+            </div>
+            <div>
+              <dt>Battery</dt>
+              <dd id="battery">-</dd>
+            </div>
+            <div>
+              <dt>Battery Power</dt>
+              <dd id="batteryPower">-</dd>
+            </div>
+            <div>
+              <dt>Battery Cycles</dt>
+              <dd id="batteryCycles">-</dd>
+            </div>
+            <div>
+              <dt>Pose</dt>
+              <dd id="pose">-</dd>
+            </div>
+            <div class="wide">
+              <dt>Faults / Warnings</dt>
+              <dd id="faults">-</dd>
+            </div>
+          </dl>
+        </article>
+
+        <!-- ── Camera Stream (existing) ── -->
+        <article class="card camera-card">
+          <div class="section-title">
+            <h2>Camera Stream</h2>
+            <span class="inline-note" id="cameraStatus">Waiting for camera frames.</span>
+          </div>
+          <img id="cameraFeed" src="/stream/camera" alt="Robot camera feed" />
+        </article>
+
+        <!-- ── Event Log (existing) ── -->
+        <article class="card event-card">
+          <div class="section-title">
+            <h2>Event Log</h2>
+            <span class="inline-note">Last 50</span>
+          </div>
+          <ul id="eventLog" class="event-log"></ul>
+        </article>
+
+        <!-- ── History Panel (new, full-width) ── -->
+        <article class="card history-card wide-card">
+          <div class="section-title">
+            <h2>Structured Log History</h2>
+            <div class="history-controls">
+              <select id="historyLevel">
+                <option value="">All levels</option>
+                <option value="info">info</option>
+                <option value="warn">warn</option>
+                <option value="error">error</option>
+              </select>
+              <select id="historyCategory">
+                <option value="">All categories</option>
+                <option value="state_transition">state_transition</option>
+                <option value="action_accepted">action_accepted</option>
+                <option value="action_rejected">action_rejected</option>
+                <option value="movement_blocked">movement_blocked</option>
+                <option value="fault">fault</option>
+                <option value="mission">mission</option>
+                <option value="connection">connection</option>
+              </select>
+              <button id="historyRefreshBtn" class="small-btn">Refresh</button>
+              <button id="historyCopyBtn" class="small-btn">Copy All</button>
+            </div>
+          </div>
+          <ul id="historyLog" class="history-log"></ul>
+        </article>
+
+      </section>
+    </main>
+
+    <script src="/web/app.js"></script>
+  </body>
+</html>

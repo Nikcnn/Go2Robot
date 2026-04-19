@@ -1,0 +1,12 @@
+{"ts": "2026-04-17T08:48:51.142897+00:00", "level": "info", "category": "connection", "event": "server_started", "message": "server_started", "details": {"adapter_mode": "mock", "adapter_ready": true}}
+{"ts": "2026-04-17T08:48:51.156762+00:00", "level": "info", "category": "mission", "event": "mission_started", "message": "mission_started", "details": {"mission_id": "20260417T084851155973Z", "route_id": "demo_route_v1"}}
+{"ts": "2026-04-17T08:48:51.157248+00:00", "level": "info", "category": "mission", "event": "mission_start_accepted", "message": "Mission started: 20260417T084851155973Z", "details": {"route_id": "demo_route"}}
+{"ts": "2026-04-17T08:48:51.158965+00:00", "level": "info", "category": "mission", "event": "mission_running", "message": "mission_running", "details": {"mission_id": "20260417T084851155973Z", "route_id": "demo_route_v1"}}
+{"ts": "2026-04-17T08:48:51.160313+00:00", "level": "info", "category": "mission", "event": "step_started", "message": "step_started", "details": {"step_id": "move_1", "step_type": "move"}}
+{"ts": "2026-04-17T08:48:51.361984+00:00", "level": "info", "category": "mission", "event": "step_completed", "message": "step_completed", "details": {"step_id": "move_1", "step_type": "move"}}
+{"ts": "2026-04-17T08:48:51.362278+00:00", "level": "info", "category": "mission", "event": "step_started", "message": "step_started", "details": {"step_id": "checkpoint_1", "step_type": "checkpoint"}}
+{"ts": "2026-04-17T08:48:51.416720+00:00", "level": "info", "category": "mission", "event": "checkpoint_processed", "message": "checkpoint_processed", "details": {"waypoint_id": "panel_A", "analyzer": "simple_presence", "result": "not_configured"}}
+{"ts": "2026-04-17T08:48:51.416942+00:00", "level": "info", "category": "mission", "event": "step_completed", "message": "step_completed", "details": {"step_id": "checkpoint_1", "step_type": "checkpoint"}}
+{"ts": "2026-04-17T08:48:51.417132+00:00", "level": "info", "category": "mission", "event": "step_started", "message": "step_started", "details": {"step_id": "stop_1", "step_type": "stop"}}
+{"ts": "2026-04-17T08:48:51.417387+00:00", "level": "info", "category": "mission", "event": "step_completed", "message": "step_completed", "details": {"step_id": "stop_1", "step_type": "stop"}}
+{"ts": "2026-04-17T08:48:51.417616+00:00", "level": "info", "category": "mission", "event": "mission_completed", "message": "mission_completed", "details": {"mission_id": "20260417T084851155973Z", "steps_executed": 3}}

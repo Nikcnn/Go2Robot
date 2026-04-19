@@ -1,0 +1,60 @@
+{
+  "mission_id": "20260416T182632122802Z",
+  "route_id": "demo_route_v1",
+  "mission_status": "COMPLETED",
+  "started_at": "2026-04-16T18:26:32.122802+00:00",
+  "finished_at": "2026-04-16T18:26:32.380166+00:00",
+  "steps_executed": 3,
+  "checkpoints": [
+    {
+      "waypoint_id": "panel_A",
+      "timestamp": "2026-04-16T18:26:32.377736+00:00",
+      "image_path": "images/panel_A_20260416T182632377736Z.jpg",
+      "telemetry": {
+        "timestamp": "2026-04-16T18:26:32.317291Z",
+        "mode": "AUTO",
+        "mission_status": "RUNNING",
+        "route_id": "demo_route_v1",
+        "active_step_id": "move_1",
+        "mission_id": "20260416T182632122802Z",
+        "pose": {
+          "x": 0.028771320000305422,
+          "y": 0.0,
+          "yaw": 0.0
+        },
+        "robot_state": {
+          "battery_percent": 88.0,
+          "imu_yaw": 0.0,
+          "faults": []
+        }
+      },
+      "analysis": {
+        "analyzer": "simple_presence",
+        "status": "not_configured",
+        "result": "not_configured",
+        "score": null,
+        "details": {
+          "reason": "simple_presence_is_a_stub"
+        }
+      }
+    }
+  ],
+  "analysis_results": [
+    {
+      "waypoint_id": "panel_A",
+      "timestamp": "2026-04-16T18:26:32.377736+00:00",
+      "analysis": {
+        "analyzer": "simple_presence",
+        "status": "not_configured",
+        "result": "not_configured",
+        "score": null,
+        "details": {
+          "reason": "simple_presence_is_a_stub"
+        }
+      }
+    }
+  ],
+  "mode_transitions": [],
+  "errors": [],
+  "warnings": []
+}

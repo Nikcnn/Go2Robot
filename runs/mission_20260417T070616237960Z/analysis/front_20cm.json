@@ -1,0 +1,13 @@
+{
+  "waypoint_id": "front_20cm",
+  "timestamp": "2026-04-17T07:06:18.503040+00:00",
+  "analysis": {
+    "analyzer": "simple_presence",
+    "status": "not_configured",
+    "result": "not_configured",
+    "score": null,
+    "details": {
+      "reason": "simple_presence_is_a_stub"
+    }
+  }
+}

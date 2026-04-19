@@ -1,0 +1,1 @@
+{"timestamp": "2026-04-17T06:28:11.031825Z", "mode": "AUTO", "mission_status": "RUNNING", "route_id": "demo_route_v1", "active_step_id": "move_1", "mission_id": "20260417T062810831917Z", "pose": {"x": 0.01986905509984354, "y": 0.0, "yaw": 0.0}, "robot_state": {"battery_percent": 89.5, "imu_yaw": 0.0, "faults": []}}

@@ -1,0 +1,23 @@
+{
+  "defaultMode": "acceptEdits",
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(pytest tests/test_route_loader.py:*)",
+      "Bash(pytest tests/test_control_priority.py:*)",
+      "Bash(pytest tests/test_report_builder.py:*)",
+      "Bash(pytest tests/test_api_smoke.py:*)",
+      "Bash(python -m src.main --config config/app_config.yaml:*)",
+      "Read(*)",
+      "Edit(*)",
+      "Write(*)"
+    ],
+    "deny": [
+      "Read(**/.env)",
+      "Read(runs/**)",
+      "Bash(curl:*)",
+      "Bash(wget:*)"
+    ]
+  }
+}

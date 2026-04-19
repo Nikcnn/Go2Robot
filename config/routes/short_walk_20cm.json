@@ -1,0 +1,63 @@
+{
+  "route_id": "short_walk_20cm",
+  "steps": [
+    {
+      "id": "move_forward_20cm",
+      "type": "move",
+      "vx": 0.1,
+      "vy": 0.0,
+      "vyaw": 0.0,
+      "duration_sec": 2.0
+    },
+    {
+      "id": "checkpoint_front",
+      "type": "checkpoint",
+      "waypoint_id": "front_20cm",
+      "settle_time_sec": 0.2,
+      "analyzer": "simple_presence"
+    },
+    {
+      "id": "turn_right_90deg",
+      "type": "rotate",
+      "vx": 0.0,
+      "vy": 0.0,
+      "vyaw": -1.0,
+      "duration_sec": 1.57
+    },
+    {
+      "id": "move_right_20cm",
+      "type": "move",
+      "vx": 0.1,
+      "vy": 0.0,
+      "vyaw": 0.0,
+      "duration_sec": 2.0
+    },
+    {
+      "id": "checkpoint_right",
+      "type": "checkpoint",
+      "waypoint_id": "right_20cm",
+      "settle_time_sec": 0.2,
+      "analyzer": "simple_presence"
+    },
+    {
+      "id": "move_back_20cm",
+      "type": "move",
+      "vx": -0.1,
+      "vy": 0.0,
+      "vyaw": 0.0,
+      "duration_sec": 2.0
+    },
+    {
+      "id": "turn_around",
+      "type": "rotate",
+      "vx": 0.0,
+      "vy": 0.0,
+      "vyaw": -1.0,
+      "duration_sec": 3.14
+    },
+    {
+      "id": "stop_final",
+      "type": "stop"
+    }
+  ]
+}

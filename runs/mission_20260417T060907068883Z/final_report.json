@@ -1,0 +1,62 @@
+{
+  "mission_id": "20260417T060907068883Z",
+  "route_id": "demo_route_v1",
+  "mission_status": "COMPLETED",
+  "started_at": "2026-04-17T06:09:07.068883+00:00",
+  "finished_at": "2026-04-17T06:09:07.885095+00:00",
+  "steps_executed": 4,
+  "checkpoints": [
+    {
+      "waypoint_id": "panel_A",
+      "timestamp": "2026-04-17T06:09:07.578971+00:00",
+      "image_path": null,
+      "telemetry": {
+        "timestamp": "2026-04-17T06:09:07.458830Z",
+        "mode": "AUTO",
+        "mission_status": "RUNNING",
+        "route_id": "demo_route_v1",
+        "active_step_id": "move_1",
+        "mission_id": "20260417T060907068883Z",
+        "pose": {
+          "x": 0.6188005805015564,
+          "y": 0.1333543062210083,
+          "yaw": 0.2093653529882431
+        },
+        "robot_state": {
+          "battery_percent": null,
+          "imu_yaw": 0.2093653529882431,
+          "faults": [
+            "error_code:100"
+          ]
+        }
+      },
+      "analysis": {
+        "analyzer": "simple_presence",
+        "status": "error",
+        "result": "capture_failed",
+        "score": null,
+        "details": {
+          "reason": "no_frame"
+        }
+      }
+    }
+  ],
+  "analysis_results": [
+    {
+      "waypoint_id": "panel_A",
+      "timestamp": "2026-04-17T06:09:07.578971+00:00",
+      "analysis": {
+        "analyzer": "simple_presence",
+        "status": "error",
+        "result": "capture_failed",
+        "score": null,
+        "details": {
+          "reason": "no_frame"
+        }
+      }
+    }
+  ],
+  "mode_transitions": [],
+  "errors": [],
+  "warnings": []
+}

@@ -1,0 +1,11 @@
+{"ts": "2026-04-16T18:25:40.903070+00:00", "event": "mission_started", "details": {"mission_id": "20260416T182540901796Z", "route_id": "demo_route_v1"}}
+{"ts": "2026-04-16T18:25:40.903986+00:00", "event": "mission_running", "details": {"mission_id": "20260416T182540901796Z", "route_id": "demo_route_v1"}}
+{"ts": "2026-04-16T18:25:40.904902+00:00", "event": "step_started", "details": {"step_id": "move_1", "step_type": "move"}}
+{"ts": "2026-04-16T18:25:41.105837+00:00", "event": "step_completed", "details": {"step_id": "move_1", "step_type": "move"}}
+{"ts": "2026-04-16T18:25:41.106062+00:00", "event": "step_started", "details": {"step_id": "checkpoint_1", "step_type": "checkpoint"}}
+{"ts": "2026-04-16T18:25:41.156994+00:00", "event": "checkpoint_captured", "details": {"waypoint_id": "panel_A"}}
+{"ts": "2026-04-16T18:25:41.158553+00:00", "event": "checkpoint_processed", "details": {"waypoint_id": "panel_A", "analyzer": "simple_presence", "result": "not_configured"}}
+{"ts": "2026-04-16T18:25:41.158770+00:00", "event": "step_completed", "details": {"step_id": "checkpoint_1", "step_type": "checkpoint"}}
+{"ts": "2026-04-16T18:25:41.158985+00:00", "event": "step_started", "details": {"step_id": "stop_1", "step_type": "stop"}}
+{"ts": "2026-04-16T18:25:41.159192+00:00", "event": "step_completed", "details": {"step_id": "stop_1", "step_type": "stop"}}
+{"ts": "2026-04-16T18:25:41.159402+00:00", "event": "mission_completed", "details": {"mission_id": "20260416T182540901796Z", "steps_executed": 3}}

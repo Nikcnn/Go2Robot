@@ -1,0 +1,13 @@
+{
+  "mission_id": "20260417T064749833252Z",
+  "route_id": "short_walk_20cm",
+  "mission_status": "ABORTED",
+  "started_at": "2026-04-17T06:47:49.833252+00:00",
+  "finished_at": "2026-04-17T06:47:53.175844+00:00",
+  "steps_executed": 1,
+  "checkpoints": [],
+  "analysis_results": [],
+  "mode_transitions": [],
+  "errors": [],
+  "warnings": []
+}

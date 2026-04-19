@@ -1,0 +1,22 @@
+robot:
+  mode: mock
+  max_vx: 0.5
+  max_vyaw: 1.0
+telemetry:
+  hz: 5
+camera:
+  fps: 10
+  width: 640
+  height: 480
+  jpeg_quality: 70
+control:
+  watchdog_timeout_ms: 1500
+analysis:
+  frame_diff_threshold: 0.25
+server:
+  host: 0.0.0.0
+  port: 8000
+storage:
+  runs_dir: runs
+logging:
+  level: INFO

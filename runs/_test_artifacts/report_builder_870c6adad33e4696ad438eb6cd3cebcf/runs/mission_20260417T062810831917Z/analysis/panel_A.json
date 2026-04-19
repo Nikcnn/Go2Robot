@@ -1,0 +1,13 @@
+{
+  "waypoint_id": "panel_A",
+  "timestamp": "2026-04-17T06:28:11.108159+00:00",
+  "analysis": {
+    "analyzer": "simple_presence",
+    "status": "not_configured",
+    "result": "not_configured",
+    "score": null,
+    "details": {
+      "reason": "simple_presence_is_a_stub"
+    }
+  }
+}

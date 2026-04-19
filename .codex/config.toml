@@ -1,0 +1,19 @@
+
+
+project_doc_max_bytes = 12000
+project_doc_fallback_filenames = ["AGENTS.md"]
+
+
+developer_instructions = """
+Be concise. Prefer file diffs over long explanations.
+Do not restate repository instructions.
+Ask for escalation only when blocked by permissions or missing files.
+Prefer reading targeted files over broad repo scans.
+When editing, change the minimum possible surface area first.
+"""
+
+compact_prompt = """
+Summarize only active constraints, changed files, open blockers, and next exact step.
+Drop all narrative.
+"""
+

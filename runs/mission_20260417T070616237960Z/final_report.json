@@ -1,0 +1,87 @@
+{
+  "mission_id": "20260417T070616237960Z",
+  "route_id": "short_walk_20cm",
+  "mission_status": "ABORTED",
+  "started_at": "2026-04-17T07:06:16.237960+00:00",
+  "finished_at": "2026-04-17T07:06:50.868459+00:00",
+  "steps_executed": 4,
+  "checkpoints": [
+    {
+      "waypoint_id": "front_20cm",
+      "timestamp": "2026-04-17T07:06:18.503040+00:00",
+      "image_path": "images/front_20cm_20260417T070618503040Z.jpg",
+      "telemetry": {
+        "timestamp": "2026-04-17T07:06:18.485341Z",
+        "mode": "AUTO",
+        "mission_status": "RUNNING",
+        "route_id": "short_walk_20cm",
+        "active_step_id": "checkpoint_front",
+        "mission_id": "20260417T070616237960Z",
+        "pose": {
+          "x": 0.9276065826416016,
+          "y": 0.37587523460388184,
+          "yaw": -0.020840726792812347
+        },
+        "robot_state": {
+          "battery_percent": 11.0,
+          "battery_voltage_v": 25.98,
+          "battery_current_a": 2.09,
+          "battery_cycles": 5,
+          "imu_yaw": -0.020840726792812347,
+          "camera_status": "Live via Unitree VideoClient.",
+          "faults": [
+            "Sport mode error code 100 (0x00000064; active bits: 2, 5, 6; current mode: idle).",
+            "BMS status flag is 0x08.",
+            "Battery low: 11% remaining."
+          ]
+        }
+      },
+      "analysis": {
+        "analyzer": "simple_presence",
+        "status": "not_configured",
+        "result": "not_configured",
+        "score": null,
+        "details": {
+          "reason": "simple_presence_is_a_stub"
+        }
+      }
+    }
+  ],
+  "analysis_results": [
+    {
+      "waypoint_id": "front_20cm",
+      "timestamp": "2026-04-17T07:06:18.503040+00:00",
+      "analysis": {
+        "analyzer": "simple_presence",
+        "status": "not_configured",
+        "result": "not_configured",
+        "score": null,
+        "details": {
+          "reason": "simple_presence_is_a_stub"
+        }
+      }
+    }
+  ],
+  "mode_transitions": [
+    {
+      "ts": "2026-04-17T07:06:48.975952+00:00",
+      "event": "mode_changed",
+      "details": {
+        "from": "AUTO",
+        "to": "MANUAL",
+        "reason": "manual_take"
+      }
+    }
+  ],
+  "errors": [],
+  "warnings": [
+    {
+      "ts": "2026-04-17T07:06:49.506292+00:00",
+      "event": "warning",
+      "details": {
+        "message": "manual teleop watchdog timeout",
+        "kind": "watchdog_timeout"
+      }
+    }
+  ]
+}
