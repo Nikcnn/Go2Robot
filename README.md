@@ -1,134 +1,66 @@
-# Go2 Inspection MVP
+# Go2 Inspection System
 
 ## What This Is
-A safe test-environment MVP for scripted inspection on a Unitree Go2. It runs end-to-end in mock mode with a FastAPI server, a plain HTML dashboard, a scripted JSON route executor, synthetic telemetry, a synthetic camera stream, per-mission storage, and fast hardware-free tests.
+
+This repo now contains:
+
+- a working Python MVP in `src/` with FastAPI, a plain HTML dashboard, scripted mission execution, per-mission storage, reports, mock mode, and direct Go2 SDK integration
+- a new ROS 2 Humble workspace in `ros_ws/` for `go2_bridge`, `go2_mission`, and Nav2-based bringup
+
+The Python MVP still runs end-to-end without ROS. The ROS workspace is the next architectural layer for waypoint navigation and service-based mission execution.
 
 ## What This Is Not
-This is not full autonomous navigation. It does not implement ROS, ROS2, Nav2, SLAM, RViz, Gazebo, obstacle avoidance, production safety systems, fleet management, or a frontend build pipeline.
 
----
+This is not a production autonomy stack. It is not validated here as a complete field-ready Nav2 deployment, and the new built-in lidar ROS path still needs runtime verification on Ubuntu 22.04 with the real robot.
 
-## Architecture
+## Repo Layout
 
-```
-HTTP / WebSocket clients
-        │
-        ▼
-  FastAPI (src/api.py)
-        │
-        ▼
-  ControlCore (src/control.py)
-  ┌─────────────────────────────────────┐
-  │  Priority: ESTOP > MANUAL > AUTO    │
-  │  Watchdog: zeroes velocity on       │
-  │  stale teleop commands              │
-  └─────────────────────────────────────┘
-        │ send_velocity / stop / get_state
-        ▼
-  RobotAdapterProtocol (src/robot/robot_adapter.py)
-       ╱                    ╲
-MockRobotAdapter        Go2RobotAdapter
-(always available)      (requires SDK + hardware)
+```text
+src/                 existing FastAPI app, dashboard, storage, analysis, adapters
+ros_ws/              ROS 2 Humble workspace
+shared_missions/     coordinate missions and shared maps
+config/routes/       scripted JSON routes for the current Python MVP
+runs/                per-mission outputs
+BUILD.md             ROS 2 Humble build and launch notes
 ```
 
-**Control layer rules:**
-- `ESTOP` is latched; all motion commands are blocked until explicitly reset
-- `MANUAL` mode pauses any running mission; release does not auto-resume
-- `AUTO` is the only mode where mission steps issue `send_velocity`
-- A teleop watchdog thread fires `stop()` if no MANUAL command arrives within `watchdog_timeout_ms`
+## Current Application Layer
 
-**Mission executor (`src/mission.py`):**
-- Loads a JSON route file, executes steps sequentially
-- Calls `send_velocity` only when `ControlCore.wait_until_runnable()` returns True
-- Checkpoint steps call `capture_frame` + telemetry snapshot + analysis + storage
-- When enabled, checkpoint steps also capture Intel RealSense D435i RGB-D artifacts without replacing the existing robot camera path
+The existing application path is:
 
----
-
-## Mock Mode vs Go2 Mode
-
-|                     | Mock mode              | Go2 mode                              |
-|---------------------|------------------------|---------------------------------------|
-| Hardware required   | No                     | Yes                                   |
-| SDK required        | No                     | Yes (`unitree_sdk2py`)                |
-| Camera              | Synthesised (always)   | Optional (SDK VideoClient, with GStreamer fallback) |
-| Telemetry           | Simulated              | Real (DDS `rt/sportmodestate`)        |
-| Pose                | Dead-reckoned          | Real (`SportModeState_.position`)     |
-| Battery             | Simulated              | Real (`rt/lowstate` BMS + power data) |
-| CI compatible       | Yes                    | No (hardware-dependent)               |
-
----
-
-## SDK / Environment Requirements (Go2 mode only)
-
-- Python >= 3.8
-- `cyclonedds == 0.10.2` — may require manual build; see the upstream README at `unitreerobotics/unitree_sdk2_python`
-- GStreamer with H264 decode support — camera only, fully optional
-- Physical ethernet connection to Go2 (`interface_name` is an interface name such as `enp2s0`, **not** an IP address)
-
-**SDK install (source, recommended):**
-```bash
-git clone https://github.com/unitreerobotics/unitree_sdk2_python
-pip install -e unitree_sdk2_python
+```text
+dashboard -> FastAPI -> ControlCore -> MissionManager -> RobotAdapter
 ```
 
-**SDK install (PyPI — verify version compatibility first):**
-```bash
-pip install unitree_sdk2py
+Main characteristics:
+
+- scripted motion only in the current Python MVP
+- mock mode runs without hardware
+- real Go2 mode uses `unitree_sdk2py`
+- all uncertain SDK code remains isolated to `src/robot/go2_adapter.py`
+- control priority is `ESTOP > MANUAL > AUTO`
+- manual override pauses missions and never auto-resumes
+
+## ROS 2 Layer
+
+The new target path is:
+
+```text
+web / FastAPI -> ROS 2 mission service -> Nav2 -> go2_bridge -> unitreesdk2py -> robot
 ```
 
----
+ROS packages:
 
-## Config Reference
+- `go2_interfaces`: custom ROS services
+- `go2_bridge`: `/cmd_vel` subscriber, `/odom` publisher, `/tf` broadcaster, built-in lidar `/points` publisher, optional RealSense bridge, checkpoint capture service
+- `go2_mission`: `FollowWaypoints` action client, checkpoint tasks, mission control service
+- `go2_nav_bringup`: launch files, Humble Nav2 params, RViz config
 
-`config/app_config.yaml` — all fields shown with defaults:
+Important constraint:
 
-```yaml
-robot:
-  mode: mock            # mock | go2
-  interface_name: eth0  # network interface name (NOT an IP) — go2 mode only
-  camera_enabled: false # enables the dashboard camera stream in go2 mode
-  max_vx: 0.5           # m/s clamp applied by ControlCore
-  max_vyaw: 1.0         # rad/s clamp applied by ControlCore
+- `go2_bridge` must be the only process that touches `unitreesdk2py` because `ChannelFactory` is a process singleton.
 
-telemetry:
-  hz: 5                 # telemetry poll and WebSocket push rate
-
-camera:
-  fps: 10
-  width: 640
-  height: 480
-  jpeg_quality: 70
-
-realsense:
-  enabled: false           # optional Intel RealSense D435i service
-  width: 640
-  height: 480
-  fps: 15
-  enable_color: true
-  enable_depth: true
-  startup_required: false  # fail server startup if the camera is required but unavailable
-
-control:
-  watchdog_timeout_ms: 500   # manual teleop dead-man timeout
-
-analysis:
-  frame_diff_threshold: 0.25
-
-server:
-  host: 0.0.0.0
-  port: 8000
-
-storage:
-  runs_dir: runs
-
-logging:
-  level: INFO
-```
-
----
-
-## Install
+## Install The Python MVP
 
 Create a Python 3.11+ environment and install:
 
@@ -136,59 +68,68 @@ Create a Python 3.11+ environment and install:
 pip install -r requirements.txt
 ```
 
-For Go2 hardware mode, also install the SDK (see above).
+Optional extras:
 
-For Intel RealSense D435i support, install `pyrealsense2` in the same environment:
+- `unitree_sdk2py` for real Go2 control
+- `pyrealsense2` for D435i capture in the Python app
 
-```bash
-pip install pyrealsense2
-```
-
----
-
-## Running in Mock Mode
+## Run Mock Mode
 
 ```bash
-python -m src.main
-# or with an explicit config path:
 python -m src.main --config config/app_config.yaml
 ```
 
-The default config has `robot.mode: mock`, so no hardware or SDK is required.
+Open:
 
----
-
-## Running in Go2 Mode
-
-```bash
-# 1. Ensure Go2 is connected via ethernet on interface enp2s0
-# 2. Ensure unitree_sdk2py is installed
-# 3. Optionally install pyrealsense2 if you want D435i support
-# 4. Set mode in config/app_config.yaml:
-#      robot:
-#        mode: go2
-#        interface_name: enp2s0
-#        camera_enabled: true    # enables the dashboard camera stream
-#      realsense:
-#        enabled: true
-#        startup_required: false # set true only if the external camera must be present
-
-python -m src.main --config config/app_config.yaml
-```
-
-If the SDK is missing, the server exits immediately with a clear error message before any port is bound.
-
----
-
-## Open The Dashboard
-
-```
+```text
 http://127.0.0.1:8000/
 ```
 
----
+The default config uses `robot.mode: mock`, so no robot, SDK, or ROS installation is required.
+
+## Run Go2 Mode In The Existing Python App
+
+Update config for `robot.mode: go2`, set the correct `interface_name`, and start:
+
+```bash
+python -m src.main --config config/app_config.go2.enp0s20f0u1c2.yaml
+```
+
+If the SDK is missing, startup fails before binding the port.
+
+## Build The ROS 2 Workspace
+
+The ROS layer targets Ubuntu 22.04 + ROS 2 Humble and is documented in [BUILD.md](</D:/Go2Robot/BUILD.md>).
+
+At a high level:
+
+```bash
+cd /path/to/Go2Robot/ros_ws
+source /opt/ros/humble/setup.bash
+rosdep install --from-paths src --ignore-src -r -y
+colcon build --symlink-install
+source install/setup.bash
+export GO2_OPERATOR_APP_ROOT=/path/to/Go2Robot
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+```
+
+Bringup examples:
+
+```bash
+ros2 launch go2_nav_bringup mapping.launch.py robot_mode:=go2 interface_name:=enp0s20f0u1c2 use_realsense:=false require_realsense:=false lidar_mode:=auto
+ros2 launch go2_nav_bringup navigation.launch.py robot_mode:=go2 interface_name:=enp0s20f0u1c2 map:=/path/to/site_a_floor_1.yaml use_realsense:=false require_realsense:=false lidar_mode:=auto
+```
+
+Optional ROS sensor overrides:
+
+- `lidar_sdk_topic:=<topic_name>` if the built-in Go2 lidar DDS topic is not `utlidar/cloud`
+- `lidar_sdk_msg_module:=<module> lidar_sdk_msg_type:=<type>` if the SDK exposes the built-in lidar PointCloud2 type from a different generated module/class
+- `lidar_frame:=<frame> lidar_tf_x:=... lidar_tf_y:=... lidar_tf_z:=... lidar_tf_roll:=... lidar_tf_pitch:=... lidar_tf_yaw:=...` to override the static `base_link -> lidar_frame` transform used by SLAM/Nav2
+- `use_realsense:=true realsense_publish_pointcloud:=true` to expose the D435i as an auxiliary `/camera/depth/points` source alongside its color and depth topics
 
 ## Start A Mission
+
+### Current Python MVP
 
 Use the dashboard or:
 
@@ -198,75 +139,66 @@ curl -X POST http://127.0.0.1:8000/api/mission/start \
   -d '{"route_id":"demo_route"}'
 ```
 
-The demo route lives at `config/routes/demo_route.json`.
+### ROS 2 coordinate mission
 
----
+Use:
+
+```text
+shared_missions/missions/inspect_line_a.json
+```
+
+Through ROS 2, missions are started via the `go2_interfaces/srv/MissionControl` service exposed by `go2_mission`.
 
 ## Manual Override Flow
 
-1. Take manual mode: dashboard button or `POST /api/mode/manual/take`
-2. If the robot is seated or was previously damped by ESTOP, activate it first: `POST /api/robot/activate`
-3. Teleop commands: `POST /api/teleop/cmd`
-4. Manual takeover pauses the active mission
-5. Releasing manual mode does **not** resume the mission
-6. Resume requires: `POST /api/mission/resume`
+For the current Python app:
 
----
+1. Take manual mode with the dashboard or `POST /api/mode/manual/take`.
+2. Send teleop commands with `POST /api/teleop/cmd`.
+3. The running mission pauses immediately.
+4. Releasing manual mode does not resume the mission.
+5. Resume requires `POST /api/mission/resume`.
 
 ## ESTOP Flow
 
-1. Trigger: `POST /api/mode/estop`
-2. All motion commands are blocked centrally and the robot is stopped with passive damping
-3. Reset: `POST /api/mode/reset-estop`
-4. Re-activate posture before moving again: `POST /api/robot/activate`
-5. If ESTOP interrupted a mission, start a new mission explicitly
+For the current Python app:
 
----
+1. Trigger `POST /api/mode/estop`.
+2. Motion is blocked centrally and the robot is stopped.
+3. Reset with `POST /api/mode/reset-estop`.
+4. Re-activate posture before moving again:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/robot/activate
+```
 
 ## Run Folder Layout
 
-```
+```text
 runs/mission_<id>/
-├── mission_meta.json
-├── event_log.jsonl
-├── telemetry.jsonl
-├── images/
-├── analysis/
-├── realsense/
-└── final_report.json
+  mission_meta.json
+  event_log.jsonl
+  telemetry.jsonl
+  images/
+  analysis/
+  final_report.json
 ```
 
-When `realsense.enabled: true`, each checkpoint can add:
-- `realsense/<waypoint>_<timestamp>_color.jpg`
-- `realsense/<waypoint>_<timestamp>_depth.npy`
-- `realsense/<waypoint>_<timestamp>_depth_preview.png`
-
-The checkpoint entry in `final_report.json` also includes structured `sensor_captures.realsense` metadata with status, timestamps, frame ids, relative artifact paths, resolution, and any available intrinsics.
-
----
+The ROS mission layer reuses the same storage/report pipeline through the existing `src.storage` module.
 
 ## Tests
+
+Python MVP tests:
 
 ```bash
 pytest
 ```
 
-All tests are hardware-free and run against mock adapters. Go2-specific paths are covered by patching `SDK_AVAILABLE`.
+The new ROS workspace was not runtime-tested here because this environment is Windows, not Ubuntu 22.04 + Humble.
 
----
+## Current Limits
 
-## Known Limitations
-
-- **Scripted motion only** — no autonomous navigation, SLAM, or obstacle avoidance
-- **Normal stop vs ESTOP are different** — normal stop uses `StopMove()` to keep posture; ESTOP adds `Damp()`, which requires `POST /api/robot/activate` before motion resumes
-- **Camera reliability depends on robot services** — the adapter now prefers Unitree `VideoClient` and falls back to the older UDP/GStreamer path when SDK camera frames are unavailable
-- **RealSense is an additional sensor, not a replacement camera path** — checkpoint analysis still uses the existing robot/mock frame path; the D435i adds optional RGB-D artifacts and reports a clear unavailable status when `pyrealsense2` is missing or the device is disconnected
-- **Detailed fault text is still partly generic** — Unitree exposes `SportModeState_.error_code`, but this repo does not have an official per-bit decoder, so the dashboard shows the raw code, hex value, active bits, and related service/BMS warnings
-- **Timed velocity pulses, not waypoints** — each mission step issues `Move(vx, vy, vyaw)` for a fixed `duration_sec`; actual displacement depends on floor friction and robot state
-- **ChannelFactory is a process singleton** — `interface_name` is set on first `connect()` call and cannot be changed without restarting the process
-
----
-
-## What "Compatible with Go2 through Python SDK" Means
-
-This repo controls Go2 via `SportClient.Move(vx, vy, vyaw)` from `unitree_sdk2py`. It does **not** use ROS, Nav2, or any localisation stack. Motion is scripted: each mission step issues a velocity command for a fixed duration, then stops. State feedback comes from DDS subscriptions to `rt/sportmodestate` (`SportModeState_`) and `rt/lowstate` (`LowState_`), while the dashboard camera prefers the SDK `VideoClient`. All SDK work is isolated to `src/robot/go2_adapter.py`.
+- The Python MVP is still scripted motion, not waypoint localization.
+- The ROS layer exists, but full Nav2 runtime validation must happen on Ubuntu 22.04.
+- The built-in Go2 lidar path now targets `/points -> /scan`, and the exact remaining SDK uncertainty is limited to the generated PointCloud2 import path inside `go2_bridge/go2_bridge/unitree_lidar.py`.
+- `go2_bridge` is the only process that may own the Unitree DDS connection.

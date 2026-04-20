@@ -1,0 +1,20 @@
+{
+  "mission_id": "inspect_line_a",
+  "map_id": "site_a_floor_1",
+  "waypoints": [
+    {
+      "id": "panel_A",
+      "x": 4.12,
+      "y": 1.83,
+      "yaw": 1.57,
+      "task": "inspect_panel"
+    },
+    {
+      "id": "switch_B",
+      "x": 7.4,
+      "y": 3.11,
+      "yaw": 0.0,
+      "task": "thermal_check"
+    }
+  ]
+}
