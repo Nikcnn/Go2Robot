@@ -9,8 +9,7 @@ from pathlib import Path
 
 import cv2
 from pydantic import BaseModel
-
-from .models import AnalysisResult
+from typing import Optional, Union
 
 
 def utc_now() -> datetime:
@@ -39,12 +38,12 @@ class RunContext:
 
 
 class StorageManager:
-    def __init__(self, runs_dir: str | Path) -> None:
+    def __init__(self, runs_dir: Union[str, Path]) -> None:
         self.runs_dir = Path(runs_dir)
         self.runs_dir.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()
-        self._active_run: RunContext | None = None
-        self.last_report_path: Path | None = None
+        self._active_run: Optional[RunContext] = None
+        self.last_report_path: Optional[Path] = None
 
     def start_run(self, route_id: str) -> RunContext:
         with self._lock:
@@ -84,7 +83,7 @@ class StorageManager:
             )
             return context
 
-    def record_event(self, event: str, details: dict | None = None) -> dict:
+    def record_event(self, event: str, details: Optional[dict] = None) -> dict:
         details = details or {}
         record = {"ts": utc_now(), "event": event, "details": details}
         with self._lock:
@@ -108,9 +107,10 @@ class StorageManager:
         self,
         waypoint_id: str,
         frame,
-        analysis_result: AnalysisResult | dict,
+        analysis_result: dict,
         telemetry_snapshot: dict,
-    ) -> dict | None:
+        sensor_captures: Optional[dict[str, dict]] = None,
+    ) -> Optional[dict]:
         with self._lock:
             if self._active_run is None:
                 return None
@@ -123,24 +123,10 @@ class StorageManager:
                 cv2.imwrite(str(image_path), frame)
                 image_rel_path = image_path.relative_to(self._active_run.run_dir).as_posix()
 
-            # Serialize AnalysisResult dataclass or accept legacy dict
-            if isinstance(analysis_result, AnalysisResult):
-                analysis_dict = analysis_result.to_dict()
-                if image_rel_path and not analysis_result.image_path:
-                    analysis_dict["image_path"] = image_rel_path
-            else:
-                analysis_dict = analysis_result
-
             analysis_payload = {
                 "waypoint_id": waypoint_id,
                 "timestamp": timestamp,
-                "mission_id": self._active_run.mission_id,
-                "route_id": self._active_run.route_id,
-                "robot_pose": telemetry_snapshot.get("pose"),
-                "telemetry_snapshot": telemetry_snapshot,
-                "image_path": image_rel_path,
-                "analysis_result": analysis_dict,
-                "mission_status": self._active_run.report.get("mission_status"),
+                "analysis": analysis_result,
             }
             self._write_json(self._active_run.run_dir / "analysis" / f"{waypoint_id}.json", analysis_payload)
 
@@ -149,7 +135,8 @@ class StorageManager:
                 "timestamp": timestamp,
                 "image_path": image_rel_path,
                 "telemetry": telemetry_snapshot,
-                "analysis": analysis_dict,
+                "analysis": analysis_result,
+                "sensor_captures": sensor_captures or {},
             }
             self._active_run.report["checkpoints"].append(checkpoint)
             self._active_run.report["analysis_results"].append(analysis_payload)
@@ -159,7 +146,7 @@ class StorageManager:
             )
             return checkpoint
 
-    def finalize_run(self, mission_status: str, steps_executed: int) -> Path | None:
+    def finalize_run(self, mission_status: str, steps_executed: int) -> Optional[Path]:
         with self._lock:
             if self._active_run is None:
                 return None
@@ -174,9 +161,13 @@ class StorageManager:
             self._active_run = None
             return report_path
 
-    def active_mission_id(self) -> str | None:
+    def active_mission_id(self) -> Optional[str]:
         with self._lock:
             return self._active_run.mission_id if self._active_run else None
+
+    def active_run_dir(self) -> Optional[Path]:
+        with self._lock:
+            return self._active_run.run_dir if self._active_run else None
 
     def _append_jsonl(self, path: Path, payload: dict) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)

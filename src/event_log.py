@@ -4,7 +4,7 @@ import json
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Optional
 
 EventLevel = Literal["info", "warn", "error"]
 EventCategory = Literal[
@@ -56,7 +56,7 @@ class PersistentEventLog:
         category: EventCategory,
         event: str,
         message: str,
-        details: dict | None = None,
+        details: Optional[dict] = None,
     ) -> dict:
         record: dict = {
             "ts": datetime.now(timezone.utc).isoformat(),
@@ -79,8 +79,8 @@ class PersistentEventLog:
 
     def query(
         self,
-        level: str | None = None,
-        category: str | None = None,
+        level: Optional[str] = None,
+        category: Optional[str] = None,
         limit: int = 100,
     ) -> list[dict]:
         """Return entries in reverse-chronological order (newest first)."""

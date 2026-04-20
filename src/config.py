@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Union
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
@@ -13,6 +14,7 @@ class StrictModel(BaseModel):
 class RobotConfig(StrictModel):
     mode: str = "mock"
     max_vx: float = 0.5
+    max_vy: float = 0.3
     max_vyaw: float = 1.0
     # go2-mode only — ignored in mock mode
     interface_name: str = "eth0"   # network interface name (NOT an IP) passed to ChannelFactory
@@ -28,6 +30,16 @@ class CameraConfig(StrictModel):
     width: int = 640
     height: int = 480
     jpeg_quality: int = 70
+
+
+class RealsenseConfig(StrictModel):
+    enabled: bool = False
+    width: int = 640
+    height: int = 480
+    fps: int = 15
+    enable_depth: bool = True
+    enable_color: bool = True
+    startup_required: bool = False
 
 
 class ControlConfig(StrictModel):
@@ -55,6 +67,7 @@ class AppConfig(StrictModel):
     robot: RobotConfig = Field(default_factory=RobotConfig)
     telemetry: TelemetryConfig = Field(default_factory=TelemetryConfig)
     camera: CameraConfig = Field(default_factory=CameraConfig)
+    realsense: RealsenseConfig = Field(default_factory=RealsenseConfig)
     control: ControlConfig = Field(default_factory=ControlConfig)
     analysis: AnalysisConfig = Field(default_factory=AnalysisConfig)
     server: ServerConfig = Field(default_factory=ServerConfig)
@@ -62,7 +75,7 @@ class AppConfig(StrictModel):
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
 
 
-def load_app_config(path: str | Path) -> AppConfig:
+def load_app_config(path: Union[str, Path]) -> AppConfig:
     config_path = Path(path)
     data = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
     return AppConfig.model_validate(data)

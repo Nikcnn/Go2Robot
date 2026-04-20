@@ -4,7 +4,7 @@ import asyncio
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
-import threading
+from typing import Optional, Union
 
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.encoders import jsonable_encoder
@@ -17,13 +17,14 @@ from .event_log import PersistentEventLog
 from .mission import MissionManager
 from .models import (
     ActionRequest, ActionResponse, ApiMessage, CommandSource,
-    MissionCurrentResponse, MissionStartRequest, MotionCommand,
+    MissionCurrentResponse, MissionRunRequest, MissionStartRequest,
+    MotionCommand, MotionStateResponse, RobotMode, RouteModel,
     StatusResponse, TeleopCommandRequest,
 )
 from .robot.robot_adapter import build_robot_adapter
+from .sensors import RealsenseCameraService
 from .state_machine import (
     EffectiveState, RobotStateMachine,
-    decode_bms_flags, decode_motion_mode, decode_sport_error,
 )
 from .storage import StorageManager
 from .streaming import CameraStream, EventBus
@@ -41,6 +42,7 @@ class AppRuntime:
     storage: StorageManager
     events: EventBus
     camera: CameraStream
+    realsense: RealsenseCameraService
     mission: MissionManager
     state_machine: RobotStateMachine
     event_log: PersistentEventLog
@@ -63,6 +65,23 @@ def _start_runtime(runtime: AppRuntime, emit_event) -> bool:
         adapter_ready = False
         emit_event("adapter_startup_failed", {"error": str(exc), "mode": runtime.config.robot.mode})
         runtime.control.latch_estop()
+    realsense = getattr(runtime, "realsense", None)
+    if realsense is not None:
+        try:
+            realsense.start()
+        except Exception as exc:
+            emit_event("realsense_startup_failed", {"error": str(exc)})
+            raise
+        realsense_status = realsense.get_status()
+        if realsense_status.get("enabled") and not realsense_status.get("available"):
+            emit_event(
+                "warning",
+                {
+                    "reason": str(realsense_status.get("error") or realsense_status.get("status")),
+                    "sensor": "realsense_d435i",
+                    "status": realsense_status.get("status"),
+                },
+            )
     try:
         runtime.telemetry.start()
     except Exception as exc:
@@ -89,26 +108,15 @@ _STRUCTURED_LOG_MAP: dict[str, tuple[str, str]] = {
     "estop_latched": ("error", "state_transition"),
     "estop_reset": ("info", "state_transition"),
     "adapter_startup_failed": ("error", "connection"),
+    "realsense_startup_failed": ("error", "connection"),
     "server_started": ("info", "connection"),
     "warning": ("warn", "fault"),
     "error": ("error", "fault"),
     "movement_blocked": ("warn", "movement_blocked"),
 }
 
-_MANUAL_ENTRY_ALLOWED_STATES = {
-    EffectiveState.READY,
-    EffectiveState.STANDING,
-    EffectiveState.MOVING,
-}
 
-
-def _manual_mode_block_reason(effective: EffectiveState) -> str | None:
-    if effective in _MANUAL_ENTRY_ALLOWED_STATES:
-        return None
-    return f"manual mode is blocked while effective state is '{effective.value}'"
-
-
-def create_app(config: AppConfig | None = None, config_path: str | Path = "config/app_config.yaml") -> FastAPI:
+def create_app(config: Optional[AppConfig] = None, config_path: Union[str, Path] = "config/app_config.yaml") -> FastAPI:
     config_file = Path(config_path).resolve()
     loaded_config = config or load_app_config(config_file)
     project_root = config_file.parent.parent
@@ -147,10 +155,12 @@ def create_app(config: AppConfig | None = None, config_path: str | Path = "confi
     control = ControlCore(
         adapter=adapter,
         max_vx=loaded_config.robot.max_vx,
+        max_vy=loaded_config.robot.max_vy,
         max_vyaw=loaded_config.robot.max_vyaw,
         watchdog_timeout_ms=loaded_config.control.watchdog_timeout_ms,
         event_callback=emit_event,
     )
+    realsense = RealsenseCameraService(config=loaded_config.realsense)
     telemetry = TelemetryService(
         adapter=adapter,
         control=control,
@@ -174,6 +184,7 @@ def create_app(config: AppConfig | None = None, config_path: str | Path = "confi
         storage=storage,
         analysis_threshold=loaded_config.analysis.frame_diff_threshold,
         event_callback=emit_event,
+        realsense_camera=realsense,
     )
     runtime = AppRuntime(
         config=loaded_config,
@@ -185,6 +196,7 @@ def create_app(config: AppConfig | None = None, config_path: str | Path = "confi
         storage=storage,
         events=events,
         camera=camera,
+        realsense=realsense,
         mission=mission,
         state_machine=state_machine,
         event_log=event_log,
@@ -192,30 +204,46 @@ def create_app(config: AppConfig | None = None, config_path: str | Path = "confi
     # Late-bind the connected_fn so TelemetryService reads runtime.adapter_connected
     runtime.telemetry._get_connected = lambda: runtime.adapter_connected  # type: ignore[attr-defined]
 
+    def motion_response() -> MotionStateResponse:
+        current = runtime.control.current()
+        return MotionStateResponse(
+            robot_mode=current.robot_mode,
+            mission_status=current.mission_status,
+            mission_id=current.mission_id,
+            route_id=current.route_id,
+            active_step_id=current.active_step_id,
+            steps_executed=current.steps_executed,
+            paused=current.paused,
+            estop_latched=current.estop_latched,
+            motion=runtime.control.motion_state(),
+        )
+
+    def ensure_manual_control() -> None:
+        current = runtime.control.current()
+        if current.robot_mode == RobotMode.MANUAL:
+            return
+        try:
+            if not runtime.control.take_manual():
+                raise HTTPException(status_code=409, detail="Manual mode cannot be taken in the current state.")
+        except RuntimeError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        startup_complete = threading.Event()
-
-        def bootstrap() -> None:
-            try:
-                _start_runtime(runtime, emit_event)
-            except Exception as exc:
-                emit_event("startup_thread_failed", {"error": str(exc)})
-            finally:
-                startup_complete.set()
-
-        startup_thread = threading.Thread(target=bootstrap, name="runtime-startup", daemon=True)
-        startup_thread.start()
-        startup_complete.wait(timeout=2.0)
+        try:
+            _start_runtime(runtime, emit_event)
+        except Exception as exc:
+            emit_event("startup_thread_failed", {"error": str(exc)})
+            raise
         try:
             yield
         finally:
             runtime.mission.shutdown()
+            runtime.realsense.stop()
             runtime.camera.stop()
             runtime.telemetry.stop()
             runtime.control.shutdown()
             runtime.adapter.disconnect()
-            startup_thread.join(timeout=1.0)
 
     app = FastAPI(title="Go2 Inspection MVP", lifespan=lifespan)
     app.state.runtime = runtime
@@ -228,26 +256,6 @@ def create_app(config: AppConfig | None = None, config_path: str | Path = "confi
     @app.get("/api/status", response_model=StatusResponse)
     def get_status() -> StatusResponse:
         current = runtime.control.current()
-        # Read adapter status through synchronized properties without forcing a
-        # full telemetry refresh on every HTTP request.
-        loco_state: str = getattr(
-            runtime.adapter,
-            "locomotion_state",
-            getattr(runtime.adapter, "_locomotion_state", "unknown"),
-        )
-        adapter_can_move: bool = getattr(runtime.adapter, "can_move", False)
-        adapter_block: str | None = getattr(runtime.adapter, "block_reason", None)
-
-        # Compose control_mode and override block_reason when ESTOP/manual applies.
-        ctrl_mode = current.robot_mode.value.lower()  # "auto"|"manual"|"estop"
-        if current.estop_latched:
-            adapter_can_move = False
-            adapter_block = "estop_latched"
-        elif current.robot_mode.value == "MANUAL":
-            adapter_can_move = False
-            adapter_block = "mode_rules"
-
-        activation_required = loco_state in ("idle", "damped", "activating", "disconnected", "fault")
         return StatusResponse(
             robot_mode=current.robot_mode.value,
             mission_status=current.mission_status.value,
@@ -255,16 +263,16 @@ def create_app(config: AppConfig | None = None, config_path: str | Path = "confi
             route_id=current.route_id,
             mission_id=current.mission_id,
             active_step_id=current.active_step_id,
-            control_mode=ctrl_mode,
-            locomotion_state=loco_state,
-            can_move=adapter_can_move,
-            block_reason=adapter_block,
-            activation_required=activation_required,
+            sensor_statuses={"realsense": jsonable_encoder(runtime.realsense.get_status())},
         )
 
     @app.get("/api/mission/current", response_model=MissionCurrentResponse)
     def get_mission_current() -> MissionCurrentResponse:
         return runtime.control.current()
+
+    @app.get("/api/missions/state", response_model=MotionStateResponse)
+    def get_missions_state() -> MotionStateResponse:
+        return motion_response()
 
     @app.post("/api/mission/start", response_model=ApiMessage)
     def start_mission(payload: MissionStartRequest) -> ApiMessage:
@@ -288,6 +296,18 @@ def create_app(config: AppConfig | None = None, config_path: str | Path = "confi
                          f"Mission started: {mission_id}", {"route_id": payload.route_id})
         return ApiMessage(ok=True, message=f"Mission started: {mission_id}")
 
+    @app.post("/api/missions/run", response_model=ApiMessage)
+    def run_inline_mission(payload: MissionRunRequest) -> ApiMessage:
+        eff = runtime.state_machine.get_effective()
+        can_move, block_reason = runtime.state_machine.can_move()
+        if not can_move:
+            raise HTTPException(status_code=409, detail=f"Mission blocked ({eff.value}): {block_reason}")
+        try:
+            mission_id = runtime.mission.start_route(RouteModel(route_id=payload.route_id, steps=payload.steps))
+        except RuntimeError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        return ApiMessage(ok=True, message=f"Mission started: {mission_id}")
+
     @app.post("/api/mission/pause", response_model=ApiMessage)
     def pause_mission() -> ApiMessage:
         if not runtime.control.pause_mission():
@@ -306,15 +326,12 @@ def create_app(config: AppConfig | None = None, config_path: str | Path = "confi
             raise HTTPException(status_code=409, detail="No active mission to abort.")
         return ApiMessage(ok=True, message="Mission aborted.")
 
+    @app.post("/api/missions/stop", response_model=ApiMessage)
+    def stop_mission() -> ApiMessage:
+        return abort_mission()
+
     @app.post("/api/mode/manual/take", response_model=ApiMessage)
     def take_manual() -> ApiMessage:
-        effective = runtime.state_machine.get_effective()
-        block_reason = _manual_mode_block_reason(effective)
-        if block_reason:
-            raise HTTPException(
-                status_code=409,
-                detail=block_reason[0].upper() + block_reason[1:],
-            )
         try:
             if not runtime.control.take_manual():
                 raise HTTPException(status_code=409, detail="Manual mode cannot be taken in the current state.")
@@ -330,6 +347,52 @@ def create_app(config: AppConfig | None = None, config_path: str | Path = "confi
         except RuntimeError as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
         return ApiMessage(ok=True, message="Manual mode released.")
+
+    @app.get("/api/robot/manual/state", response_model=MotionStateResponse)
+    def get_manual_state() -> MotionStateResponse:
+        return motion_response()
+
+    @app.post("/api/robot/manual/stand-up", response_model=ApiMessage)
+    def manual_stand_up() -> ApiMessage:
+        ensure_manual_control()
+        try:
+            runtime.control.stand_up()
+        except RuntimeError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        return ApiMessage(ok=True, message="Manual stand-up requested.")
+
+    @app.post("/api/robot/manual/sit", response_model=ApiMessage)
+    def manual_sit_down() -> ApiMessage:
+        ensure_manual_control()
+        runtime.control.sit_down()
+        return ApiMessage(ok=True, message="Robot seated.")
+
+    @app.post("/api/robot/manual/stop", response_model=ApiMessage)
+    def manual_stop() -> ApiMessage:
+        ensure_manual_control()
+        runtime.control.stop_motion("manual_stop")
+        return ApiMessage(ok=True, message="Manual motion stopped.")
+
+    @app.post("/api/robot/manual/cmd", response_model=ApiMessage)
+    def manual_command(payload: TeleopCommandRequest) -> ApiMessage:
+        ensure_manual_control()
+        accepted = runtime.control.submit(
+            MotionCommand(vx=payload.vx, vy=payload.vy, vyaw=payload.vyaw, ts=payload.ts),
+            source=CommandSource.MANUAL,
+        )
+        if not accepted:
+            raise HTTPException(status_code=409, detail="Manual command was rejected by control priority.")
+        return ApiMessage(ok=True, message="Manual command accepted.")
+
+    @app.post("/api/robot/manual/clear", response_model=ApiMessage)
+    def clear_manual_command() -> ApiMessage:
+        if not runtime.control.clear_manual_target():
+            raise HTTPException(status_code=409, detail="Manual mode is not active.")
+        return ApiMessage(ok=True, message="Manual command cleared.")
+
+    @app.post("/api/robot/manual/release", response_model=ApiMessage)
+    def manual_release() -> ApiMessage:
+        return release_manual()
 
     @app.post("/api/mode/estop", response_model=ApiMessage)
     def estop() -> ApiMessage:
@@ -451,18 +514,15 @@ def create_app(config: AppConfig | None = None, config_path: str | Path = "confi
         rs = snap.robot_state
         return {
             "connection": "connected" if runtime.adapter_connected else "disconnected",
-            "effective_state": sm_snap["effective"],
-            "requested_state": sm_snap["requested"],
-            "motion_mode": decode_motion_mode(rs.motion_mode),
-            "sport_mode_error": decode_sport_error(rs.sport_mode_error),
-            "bms_flags": decode_bms_flags(rs.bms_status),
             "battery": {
                 "voltage": rs.battery_voltage_v,
                 "current": rs.battery_current_a,
                 "percent": rs.battery_percent,
                 "cycles": rs.battery_cycles,
             },
+            "faults": rs.faults,
             "pose": snap.pose.model_dump() if snap.pose else None,
+            "motion": runtime.control.motion_state().model_dump(mode="json"),
             "last_command_ok": sm_snap["last_command_ok"],
             "last_command_rejected": sm_snap["last_command_rejected"],
             "last_transition_ts": sm_snap["last_transition"],
@@ -470,8 +530,8 @@ def create_app(config: AppConfig | None = None, config_path: str | Path = "confi
 
     @app.get("/api/robot/history")
     def get_robot_history(
-        level: str | None = Query(default=None),
-        category: str | None = Query(default=None),
+        level: Optional[str] = Query(default=None),
+        category: Optional[str] = Query(default=None),
         limit: int = Query(default=100, ge=1, le=500),
     ) -> dict:
         records = runtime.event_log.query(level=level, category=category, limit=limit)
@@ -542,19 +602,11 @@ def _dispatch_action(action: str, runtime: AppRuntime, emit_event) -> tuple[bool
         if ctrl.estop_latched:
             ok = ctrl.reset_estop()
             return (True, "") if ok else (False, "ESTOP reset failed internally")
-        try:
-            ok = ctrl.activate_robot()
-            if not ok:
-                return False, "robot cannot be activated in current state"
-        except Exception as exc:
-            return False, str(exc)
-        return True, "recovery attempted via activate()"
+        # UNKNOWN: No SDK fault-reset API is available for sport mode errors.
+        # Hardware-level faults (1001/1002) typically resolve after activate().
+        return False, "UNKNOWN: no SDK fault-reset API; use stand_up to attempt recovery"
 
     if action == "manual_mode":
-        effective = runtime.state_machine.get_effective()
-        block_reason = _manual_mode_block_reason(effective)
-        if block_reason:
-            return False, block_reason
         try:
             ok = ctrl.take_manual()
             if not ok:

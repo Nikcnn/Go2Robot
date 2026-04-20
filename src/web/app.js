@@ -40,12 +40,59 @@ const pressedKeys = new Set();
 let manualActive = false;
 let teleopTimer = null;
 let currentEffectiveState = "";
-let teleopRequestInFlight = false;
-let queuedTeleopCommand = null;
+
+// Teleop speed limits (adjustable at runtime)
+let speedVx   = 0.40;  // m/s forward/back
+let speedVy   = 0.30;  // m/s left/right
+let speedVyaw = 0.60;  // rad/s yaw
+
+const SPEED_LIMITS = {
+  vx:   { min: 0.22, max: 0.80, step: 0.02 },
+  vy:   { min: 0.22, max: 0.60, step: 0.02 },
+  vyaw: { min: 0.45, max: 1.50, step: 0.05 },
+};
+
+function clampSpeed(val, axis) {
+  const { min, max } = SPEED_LIMITS[axis];
+  return Math.min(max, Math.max(min, val));
+}
+
+function updateSpeedDisplay() {
+  const vxEl   = document.getElementById("vxInput");
+  const vyEl   = document.getElementById("vyInput");
+  const vyawEl = document.getElementById("vyawInput");
+  if (vxEl)   vxEl.value   = speedVx.toFixed(2);
+  if (vyEl)   vyEl.value   = speedVy.toFixed(2);
+  if (vyawEl) vyawEl.value = speedVyaw.toFixed(2);
+}
+
+function bindSpeedControls() {
+  const cfg = [
+    { dec: "vxDec",   inc: "vxInc",   input: "vxInput",   axis: "vx",   get: () => speedVx,   set: v => { speedVx   = v; } },
+    { dec: "vyDec",   inc: "vyInc",   input: "vyInput",   axis: "vy",   get: () => speedVy,   set: v => { speedVy   = v; } },
+    { dec: "vyawDec", inc: "vyawInc", input: "vyawInput", axis: "vyaw", get: () => speedVyaw, set: v => { speedVyaw = v; } },
+  ];
+  for (const { dec, inc, input, axis, get, set } of cfg) {
+    const { step } = SPEED_LIMITS[axis];
+    document.getElementById(dec).addEventListener("click", () => {
+      set(clampSpeed(get() - step, axis));
+      updateSpeedDisplay();
+    });
+    document.getElementById(inc).addEventListener("click", () => {
+      set(clampSpeed(get() + step, axis));
+      updateSpeedDisplay();
+    });
+    document.getElementById(input).addEventListener("change", (e) => {
+      const val = parseFloat(e.target.value);
+      if (!isNaN(val)) set(clampSpeed(val, axis));
+      updateSpeedDisplay();
+    });
+  }
+}
 
 // Actions that are valid per effective state
 const ACTION_ALLOWED_STATES = {
-  stand_up:     ["idle", "standing", "ready", "connecting", "error", "damping", "standing_lock"],
+  stand_up:     ["idle", "standing", "ready", "connecting"],
   stop_motion:  ["ready", "moving", "standing", "paused"],
   pause:        ["ready", "moving"],
   resume:       ["paused"],
@@ -80,8 +127,7 @@ function addEventLine(message) {
   }
 }
 
-async function postJson(url, body = {}, options = {}) {
-  const { logSuccess = true } = options;
+async function postJson(url, body = {}) {
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -93,7 +139,7 @@ async function postJson(url, body = {}, options = {}) {
     addEventLine(`error: ${detail}`);
     throw new Error(detail);
   }
-  if (logSuccess && payload.message) {
+  if (payload.message) {
     addEventLine(payload.message);
   }
   return payload;
@@ -276,12 +322,14 @@ function computeTeleopCommand() {
   let vx = 0.0;
   let vy = 0.0;
   let vyaw = 0.0;
-  if (pressedKeys.has("KeyW") || pressedKeys.has("ArrowUp")) vx += 0.2;
-  if (pressedKeys.has("KeyS") || pressedKeys.has("ArrowDown")) vx -= 0.2;
-  if (pressedKeys.has("KeyA") || pressedKeys.has("ArrowLeft")) vy += 0.2;
-  if (pressedKeys.has("KeyD") || pressedKeys.has("ArrowRight")) vy -= 0.2;
-  if (pressedKeys.has("KeyQ")) vyaw += 0.6;
-  if (pressedKeys.has("KeyE")) vyaw -= 0.6;
+  // vx=0.4 is above the BalanceStand→Locomotion trigger threshold (~0.3 m/s).
+  // At 0.2 the attitude controller just leans the body forward without engaging the gait.
+  if (pressedKeys.has("KeyW") || pressedKeys.has("ArrowUp")) vx += speedVx;
+  if (pressedKeys.has("KeyS") || pressedKeys.has("ArrowDown")) vx -= speedVx;
+  if (pressedKeys.has("KeyA") || pressedKeys.has("ArrowLeft")) vy += speedVy;
+  if (pressedKeys.has("KeyD") || pressedKeys.has("ArrowRight")) vy -= speedVy;
+  if (pressedKeys.has("KeyQ")) vyaw += speedVyaw;
+  if (pressedKeys.has("KeyE")) vyaw -= speedVyaw;
   if (pressedKeys.has("Space")) {
     vx = 0.0;
     vy = 0.0;
@@ -290,37 +338,16 @@ function computeTeleopCommand() {
   return { vx, vy, vyaw, ts: Date.now() / 1000 };
 }
 
-async function flushQueuedTeleopCommand() {
-  if (teleopRequestInFlight || !queuedTeleopCommand) return;
-  teleopRequestInFlight = true;
-  try {
-    while (queuedTeleopCommand) {
-      const nextCommand = queuedTeleopCommand;
-      queuedTeleopCommand = null;
-      await postJson("/api/teleop/cmd", nextCommand, { logSuccess: false });
-    }
-  } catch (_error) {
-    stopTeleopLoop();
-  } finally {
-    teleopRequestInFlight = false;
-    if (queuedTeleopCommand) {
-      flushQueuedTeleopCommand();
-    }
-  }
-}
-
-function queueTeleopCommand(command) {
-  queuedTeleopCommand = command;
-  flushQueuedTeleopCommand();
-}
-
 function startTeleopLoop() {
   if (teleopTimer) return;
-  queueTeleopCommand(computeTeleopCommand());
   teleopTimer = window.setInterval(async () => {
     if (!manualActive || pressedKeys.size === 0) return;
-    queueTeleopCommand(computeTeleopCommand());
-  }, 50);
+    try {
+      await postJson("/api/teleop/cmd", computeTeleopCommand());
+    } catch (_error) {
+      stopTeleopLoop();
+    }
+  }, 100);
 }
 
 function stopTeleopLoop(sendStop = true) {
@@ -328,9 +355,8 @@ function stopTeleopLoop(sendStop = true) {
     window.clearInterval(teleopTimer);
     teleopTimer = null;
   }
-  queuedTeleopCommand = null;
   if (sendStop && manualActive) {
-    queueTeleopCommand({ vx: 0.0, vy: 0.0, vyaw: 0.0, ts: Date.now() / 1000 });
+    postJson("/api/teleop/cmd", { vx: 0.0, vy: 0.0, vyaw: 0.0, ts: Date.now() / 1000 }).catch(() => {});
   }
 }
 
@@ -359,11 +385,21 @@ function bindKeyboard() {
       await postJson("/api/mode/estop");
       return;
     }
+    // Speed adjustments work even outside manual mode
+    const { step: sVx }   = SPEED_LIMITS.vx;
+    const { step: sVy }   = SPEED_LIMITS.vy;
+    const { step: sVyaw } = SPEED_LIMITS.vyaw;
+    if (event.code === "BracketLeft")  { speedVx   = clampSpeed(speedVx   - sVx,   "vx");   updateSpeedDisplay(); return; }
+    if (event.code === "BracketRight") { speedVx   = clampSpeed(speedVx   + sVx,   "vx");   updateSpeedDisplay(); return; }
+    if (event.code === "Comma")        { speedVy   = clampSpeed(speedVy   - sVy,   "vy");   updateSpeedDisplay(); return; }
+    if (event.code === "Period")       { speedVy   = clampSpeed(speedVy   + sVy,   "vy");   updateSpeedDisplay(); return; }
+    if (event.code === "Minus")        { speedVyaw = clampSpeed(speedVyaw - sVyaw, "vyaw"); updateSpeedDisplay(); return; }
+    if (event.code === "Equal")        { speedVyaw = clampSpeed(speedVyaw + sVyaw, "vyaw"); updateSpeedDisplay(); return; }
+
     if (!manualActive) return;
     if (["KeyW", "KeyS", "KeyA", "KeyD", "KeyQ", "KeyE", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(event.code)) {
       event.preventDefault();
       pressedKeys.add(event.code);
-      queueTeleopCommand(computeTeleopCommand());
       startTeleopLoop();
     }
   });
@@ -401,6 +437,8 @@ function bindCameraFeed() {
 }
 
 // ── Bootstrap ───────────────────────────────────────────────────────────────
+updateSpeedDisplay();
+bindSpeedControls();
 bindButtons();
 bindActionButtons();
 bindKeyboard();

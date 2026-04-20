@@ -4,6 +4,7 @@ import logging
 import threading
 from collections.abc import Callable
 from datetime import datetime, timezone
+from typing import Optional
 
 from .models import MissionStatus, TelemetrySnapshot
 
@@ -19,7 +20,7 @@ class TelemetryService:
         storage,
         hz: int,
         state_machine=None,
-        get_connected: Callable[[], bool] | None = None,
+        get_connected: Optional[Callable[[], bool]] = None,
     ) -> None:
         self.adapter = adapter
         self.control = control
@@ -27,8 +28,8 @@ class TelemetryService:
         self.hz = max(1, hz)
         self._lock = threading.Lock()
         self._stop_event = threading.Event()
-        self._thread: threading.Thread | None = None
-        self._latest: TelemetrySnapshot | None = None
+        self._thread: Optional[threading.Thread] = None
+        self._latest: Optional[TelemetrySnapshot] = None
         self._state_machine = state_machine
         # Injected after AppRuntime is created so we can read runtime.adapter_connected
         self._get_connected: Callable[[], bool] = get_connected or (lambda: True)

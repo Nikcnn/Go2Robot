@@ -2,7 +2,7 @@
 
 ## Hard scope
 - Safe test-environment MVP only.
-- Python 3.11+ only.
+- Python 3.9+ only.
 - Allowed stack: FastAPI, Uvicorn, OpenCV, numpy, PyYAML, pydantic v2, pytest.
 - No ROS/ROS2, Nav2, SLAM, RViz, Gazebo, BIM, digital twin, manipulator, fleet management, auth framework, React/Vue, frontend build tools.
 

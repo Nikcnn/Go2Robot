@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import time
+from datetime import datetime, timezone
 
 from tests import make_test_dir
 from src.control import ControlCore
@@ -9,6 +10,22 @@ from src.mission import MissionManager
 from src.robot.robot_adapter import MockRobotAdapter
 from src.storage import StorageManager
 from src.telemetry import TelemetryService
+
+
+class _StubRealsenseService:
+    def is_enabled(self) -> bool:
+        return True
+
+    def capture_snapshot(self, run_dir, waypoint_id):
+        return {
+            "sensor": "realsense_d435i",
+            "status": "ok",
+            "timestamp": datetime.now(timezone.utc),
+            "waypoint_id": waypoint_id,
+            "color_image_path": "realsense/mock_color.jpg",
+            "depth_npy_path": "realsense/mock_depth.npy",
+            "depth_preview_path": "realsense/mock_depth_preview.png",
+        }
 
 
 def test_final_report_contains_required_fields() -> None:
@@ -34,7 +51,14 @@ def test_final_report_contains_required_fields() -> None:
     storage = StorageManager(tmp_path / "runs")
     adapter = MockRobotAdapter(width=320, height=240)
     adapter.connect()
-    control = ControlCore(adapter=adapter, max_vx=0.5, max_vyaw=1.0, watchdog_timeout_ms=200, event_callback=storage.record_event)
+    control = ControlCore(
+        adapter=adapter,
+        max_vx=0.5,
+        max_vy=0.5,
+        max_vyaw=1.0,
+        watchdog_timeout_ms=200,
+        event_callback=storage.record_event,
+    )
     telemetry = TelemetryService(adapter=adapter, control=control, storage=storage, hz=5)
     mission = MissionManager(
         routes_dir=routes_dir,
@@ -45,6 +69,7 @@ def test_final_report_contains_required_fields() -> None:
         storage=storage,
         analysis_threshold=0.25,
         event_callback=storage.record_event,
+        realsense_camera=_StubRealsenseService(),
     )
 
     control.start()
@@ -77,6 +102,7 @@ def test_final_report_contains_required_fields() -> None:
         assert report["mission_status"] == "COMPLETED"
         assert report["steps_executed"] == 3
         assert len(report["checkpoints"]) == 1
+        assert report["checkpoints"][0]["sensor_captures"]["realsense"]["status"] == "ok"
     finally:
         mission.shutdown()
         telemetry.stop()

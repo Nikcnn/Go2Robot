@@ -1,20 +1,19 @@
 from __future__ import annotations
 
 import json
-import logging
 import threading
 import time
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional, Union
 
 from pydantic import ValidationError
 
 from .analysis import analyze
-from .models import AnalysisResult, CheckpointStep, CommandSource, MissionStatus, MotionCommand, RouteModel
-
-_log = logging.getLogger(__name__)
+from .models import CheckpointStep, CommandSource, MissionStatus, MotionCommand, RouteModel
 
 
-def load_route_file(path: str | Path) -> RouteModel:
+def load_route_file(path: Union[str, Path]) -> RouteModel:
     route_path = Path(path)
     data = json.loads(route_path.read_text(encoding="utf-8"))
     try:
@@ -23,7 +22,7 @@ def load_route_file(path: str | Path) -> RouteModel:
         raise ValueError(f"Invalid route file {route_path}: {exc}") from exc
 
 
-def resolve_route_path(routes_dir: str | Path, route_id: str) -> Path:
+def resolve_route_path(routes_dir: Union[str, Path], route_id: str) -> Path:
     routes_path = Path(routes_dir)
     direct_candidate = routes_path / route_id
     if direct_candidate.exists():
@@ -44,14 +43,15 @@ def resolve_route_path(routes_dir: str | Path, route_id: str) -> Path:
 class MissionManager:
     def __init__(
         self,
-        routes_dir: str | Path,
-        project_root: str | Path,
+        routes_dir: Union[str, Path],
+        project_root: Union[str, Path],
         control,
         adapter,
         telemetry,
         storage,
         analysis_threshold: float,
         event_callback,
+        realsense_camera=None,
     ) -> None:
         self.routes_dir = Path(routes_dir)
         self.project_root = Path(project_root)
@@ -61,13 +61,16 @@ class MissionManager:
         self.storage = storage
         self.analysis_threshold = analysis_threshold
         self.event_callback = event_callback
+        self.realsense_camera = realsense_camera
         self._lock = threading.Lock()
-        self._thread: threading.Thread | None = None
+        self._thread: Optional[threading.Thread] = None
 
     def start(self, route_id: str) -> str:
         route_path = resolve_route_path(self.routes_dir, route_id)
         route = load_route_file(route_path)
+        return self.start_route(route)
 
+    def start_route(self, route: RouteModel) -> str:
         with self._lock:
             if self._thread and self._thread.is_alive():
                 raise RuntimeError("A mission is already running.")
@@ -90,34 +93,27 @@ class MissionManager:
     def _run_mission(self, route: RouteModel) -> None:
         try:
             self.control.mark_running()
-
-            # Ensure physical readiness before first movement step.
-            has_motion = any(s.type in ("move", "rotate") for s in route.steps)
-            if has_motion:
-                ensure = getattr(self.adapter, "ensure_motion_ready", None)
-                if ensure is not None:
-                    _log.info("ensure_motion_ready before first move step")
-                    try:
-                        ensure(timeout=5.0)
-                    except Exception as exc:
-                        _log.warning("ensure_motion_ready failed: %s", exc)
-                        self.control.fail_mission(f"Motion readiness check failed: {exc}")
-                        return
-
             for step in route.steps:
                 if not self.control.wait_until_runnable():
                     break
                 self.control.set_active_step(step.id)
                 self.event_callback("step_started", {"step_id": step.id, "step_type": step.type})
 
-                if step.type in {"move", "rotate"}:
+                if step.type == "stand_up":
+                    self.control.stand_up()
+                    if not self.control.wait_for_settle():
+                        break
+                elif step.type in {"move", "move_velocity", "rotate"}:
                     if not self._execute_motion(step.vx, step.vy, step.vyaw, step.duration_sec):
+                        break
+                elif step.type in {"wait", "settle"}:
+                    if not self._sleep_with_checks(step.duration_sec):
                         break
                 elif step.type == "checkpoint":
                     if not self._handle_checkpoint(step):
                         break
                 elif step.type == "stop":
-                    self.control.stop_motion()
+                    self.control.stop_motion("mission stop step")
 
                 self.control.mark_step_completed()
                 self.event_callback("step_completed", {"step_id": step.id, "step_type": step.type})
@@ -135,10 +131,10 @@ class MissionManager:
 
     def _execute_motion(self, vx: float, vy: float, vyaw: float, duration_sec: float) -> bool:
         remaining = duration_sec
-        period = 0.1
+        period = 0.05
         while remaining > 0:
             if not self.control.wait_until_runnable():
-                self.control.stop_motion()
+                self.control.stop_motion("mission blocked")
                 current = self.control.current()
                 self.event_callback("movement_blocked", {
                     "reason": f"mission_status={current.mission_status.value}",
@@ -146,35 +142,21 @@ class MissionManager:
                     "mission_id": current.mission_id,
                 })
                 return False
-            # After a potential pause/resume, check adapter readiness (handles re-activation need).
-            if not getattr(self.adapter, "can_move", True):
-                ensure = getattr(self.adapter, "ensure_motion_ready", None)
-                if ensure is not None:
-                    try:
-                        ensure(timeout=2.0)
-                    except Exception as exc:
-                        self.control.stop_motion()
-                        self.event_callback("movement_blocked", {
-                            "reason": str(exc),
-                            "vx": vx, "vy": vy, "vyaw": vyaw,
-                            "mission_id": self.control.current().mission_id,
-                        })
-                        return False
             self.control.submit(MotionCommand(vx=vx, vy=vy, vyaw=vyaw), CommandSource.AUTO)
             chunk = min(period, remaining)
             time.sleep(chunk)
             remaining -= chunk
-        self.control.stop_motion()
+        self.control.stop_motion("mission step completed")
         return True
 
     def _handle_checkpoint(self, step: CheckpointStep) -> bool:
-        self.control.stop_motion()
+        self.control.stop_motion("checkpoint settle")
         if not self._sleep_with_checks(step.settle_time_sec):
             return False
 
         frame = self.adapter.capture_frame()
         telemetry_snapshot = self.telemetry.get_latest().model_dump(mode="json")
-        analysis_result: AnalysisResult = analyze(
+        analysis_result = analyze(
             frame,
             step.analyzer,
             {
@@ -182,18 +164,17 @@ class MissionManager:
                 "threshold": self.analysis_threshold,
             },
         )
-        checkpoint = self.storage.save_checkpoint(step.waypoint_id, frame, analysis_result, telemetry_snapshot)
-        if checkpoint and checkpoint.get("image_path"):
-            analysis_result.image_path = checkpoint["image_path"]
+        sensor_captures = self._capture_sensor_snapshots(step.waypoint_id)
+        self.storage.save_checkpoint(
+            step.waypoint_id,
+            frame,
+            analysis_result,
+            telemetry_snapshot,
+            sensor_captures=sensor_captures,
+        )
         self.event_callback(
             "checkpoint_processed",
-            {
-                "waypoint_id": step.waypoint_id,
-                "analyzer": analysis_result.analyzer_name,
-                "result": analysis_result.label,
-                "passed": analysis_result.passed,
-                "score": analysis_result.score,
-            },
+            {"waypoint_id": step.waypoint_id, "analyzer": analysis_result.get("analyzer"), "result": analysis_result.get("result")},
         )
         return True
 
@@ -207,10 +188,50 @@ class MissionManager:
             remaining -= chunk
         return True
 
-    def _resolve_reference_image(self, reference_image: str | None) -> str | None:
+    def _resolve_reference_image(self, reference_image: Optional[str]) -> Optional[str]:
         if not reference_image:
             return None
         candidate = Path(reference_image)
         if candidate.is_absolute():
             return str(candidate)
         return str((self.project_root / candidate).resolve())
+
+    def _capture_sensor_snapshots(self, waypoint_id: str) -> dict[str, dict]:
+        if self.realsense_camera is None or not self.realsense_camera.is_enabled():
+            return {}
+
+        run_dir = self.storage.active_run_dir()
+        if run_dir is None:
+            return {
+                "realsense": {
+                    "sensor": "realsense_d435i",
+                    "status": "error",
+                    "error": "No active mission run directory is available for RealSense artifacts.",
+                    "timestamp": datetime.now(timezone.utc),
+                    "waypoint_id": waypoint_id,
+                }
+            }
+
+        try:
+            snapshot = self.realsense_camera.capture_snapshot(run_dir=run_dir, waypoint_id=waypoint_id)
+        except Exception as exc:
+            snapshot = {
+                "sensor": "realsense_d435i",
+                "status": "error",
+                "error": str(exc),
+                "timestamp": datetime.now(timezone.utc),
+                "waypoint_id": waypoint_id,
+            }
+
+        if snapshot.get("status") not in {"ok", "disabled"}:
+            self.event_callback(
+                "warning",
+                {
+                    "reason": snapshot.get("error") or "RealSense checkpoint capture unavailable.",
+                    "sensor": "realsense_d435i",
+                    "status": snapshot.get("status"),
+                    "waypoint_id": waypoint_id,
+                },
+            )
+
+        return {"realsense": snapshot}
