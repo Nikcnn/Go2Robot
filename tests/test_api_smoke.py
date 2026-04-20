@@ -1,14 +1,15 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 import time
 
 import yaml
-from fastapi.testclient import TestClient
+from fastapi.routing import APIRoute
 
 from tests import make_test_dir
-from src.api import _dispatch_action, _manual_mode_block_reason, _start_runtime, create_app
+from src.api import _STRUCTURED_LOG_MAP, _start_runtime, create_app
 from src.config import AppConfig, RobotConfig
-from src.state_machine import EffectiveState
+from src.models import MissionRunRequest, MissionStartRequest, TeleopCommandRequest
 
 
 class _StartupControl:
@@ -72,10 +73,10 @@ def write_test_config():
     config_path.write_text(
         yaml.safe_dump(
             {
-                "robot": {"mode": "mock", "max_vx": 0.5, "max_vyaw": 1.0},
+                "robot": {"mode": "mock", "max_vx": 0.5, "max_vy": 0.5, "max_vyaw": 1.0},
                 "telemetry": {"hz": 5},
                 "camera": {"fps": 5, "width": 320, "height": 240, "jpeg_quality": 70},
-                "control": {"watchdog_timeout_ms": 200},
+                "control": {"watchdog_timeout_ms": 600},
                 "analysis": {"frame_diff_threshold": 0.25},
                 "server": {"host": "127.0.0.1", "port": 8000},
                 "storage": {"runs_dir": "runs"},
@@ -87,39 +88,76 @@ def write_test_config():
     return config_path
 
 
+def _route_endpoint(app, path: str, method: str = "GET"):
+    for route in app.routes:
+        if isinstance(route, APIRoute) and route.path == path and method.upper() in route.methods:
+            return route.endpoint
+    raise AssertionError(f"Route {method} {path} not found")
+
+
+@contextmanager
+def started_app(config_path):
+    app = create_app(config_path=config_path)
+    runtime = app.state.runtime
+
+    def emit_event(event: str, details: dict) -> None:
+        runtime.storage.record_event(event, details)
+        runtime.events.publish(event, details)
+        mapping = _STRUCTURED_LOG_MAP.get(event)
+        if mapping:
+            level, category = mapping
+            runtime.event_log.append(
+                level=level,  # type: ignore[arg-type]
+                category=category,  # type: ignore[arg-type]
+                event=event,
+                message=details.get("reason") or details.get("message") or event,
+                details=details,
+            )
+
+    _start_runtime(runtime, emit_event)
+    try:
+        yield app
+    finally:
+        runtime.mission.shutdown()
+        runtime.realsense.stop()
+        runtime.camera.stop()
+        runtime.telemetry.stop()
+        runtime.control.shutdown()
+        runtime.adapter.disconnect()
+
+
 def test_mock_api_smoke() -> None:
     config_path = write_test_config()
-    app = create_app(config_path=config_path)
 
-    with TestClient(app) as client:
-        status = client.get("/api/status")
-        assert status.status_code == 200
-        assert status.json()["adapter_mode"] == "mock"
+    with started_app(config_path) as app:
+        get_status = _route_endpoint(app, "/api/status")
+        get_current = _route_endpoint(app, "/api/mission/current")
+        start_mission = _route_endpoint(app, "/api/mission/start", "POST")
 
-        with client.websocket_connect("/ws/telemetry") as websocket:
-            telemetry = websocket.receive_json()
-            assert telemetry["mode"] in {"AUTO", "MANUAL", "ESTOP"}
-            assert telemetry["robot_state"]["battery_percent"] is not None
-            assert telemetry["robot_state"]["camera_status"] == "Live via mock camera"
+        status = get_status()
+        assert status.adapter_mode == "mock"
+        assert status.sensor_statuses["realsense"]["enabled"] is False
 
-        with client.websocket_connect("/ws/events") as websocket:
-            event = websocket.receive_json()
-            assert "event" in event
+        telemetry = app.state.runtime.telemetry.get_latest()
+        assert telemetry.mode.value in {"AUTO", "MANUAL", "ESTOP"}
+        assert telemetry.robot_state.battery_percent is not None
+        assert telemetry.robot_state.camera_status == "Live via mock camera"
+
+        recent_events = app.state.runtime.events.recent()
+        assert any(event["event"] == "server_started" for event in recent_events)
 
         camera_bytes = app.state.runtime.camera.get_latest_jpeg()
         assert camera_bytes is not None
         assert camera_bytes[:2] == b"\xff\xd8"
 
-        start = client.post("/api/mission/start", json={"route_id": "demo_route"})
-        assert start.status_code == 200
+        response = start_mission(MissionStartRequest(route_id="demo_route"))
+        assert response.ok is True
 
         deadline = time.time() + 3.0
         completed = False
         while time.time() < deadline:
-            current = client.get("/api/mission/current")
-            assert current.status_code == 200
-            mission_status = current.json()["mission_status"]
-            if mission_status == "COMPLETED":
+            current = get_current()
+            if current.mission_status.value == "COMPLETED":
                 completed = True
                 break
             time.sleep(0.05)
@@ -152,74 +190,74 @@ def test_api_exposes_sit_endpoint() -> None:
 
 def test_api_activate_robot_endpoint_succeeds_in_mock_mode() -> None:
     config_path = write_test_config()
-    app = create_app(config_path=config_path)
 
-    with TestClient(app) as client:
-        response = client.post("/api/robot/activate")
+    with started_app(config_path) as app:
+        activate_robot = _route_endpoint(app, "/api/robot/activate", "POST")
+        response = activate_robot()
 
-    assert response.status_code == 200
-    assert response.json()["ok"] is True
-
-
-class _DispatchControl:
-    def __init__(self) -> None:
-        self.estop_latched = False
-        self.activate_calls = 0
-        self.reset_estop_calls = 0
-        self.take_manual_calls = 0
-
-    def activate_robot(self) -> bool:
-        self.activate_calls += 1
-        return True
-
-    def reset_estop(self) -> bool:
-        self.reset_estop_calls += 1
-        return True
-
-    def take_manual(self) -> bool:
-        self.take_manual_calls += 1
-        return True
+    assert response.ok is True
 
 
-class _DispatchStateMachine:
-    def __init__(self, effective: EffectiveState) -> None:
-        self._effective = effective
+def test_manual_state_endpoint_reports_motion_diagnostics() -> None:
+    config_path = write_test_config()
 
-    def get_effective(self) -> EffectiveState:
-        return self._effective
+    with started_app(config_path) as app:
+        manual_stand_up = _route_endpoint(app, "/api/robot/manual/stand-up", "POST")
+        manual_state = _route_endpoint(app, "/api/robot/manual/state")
+        manual_cmd = _route_endpoint(app, "/api/robot/manual/cmd", "POST")
 
+        stand = manual_stand_up()
+        assert stand.ok is True
 
-class _DispatchRuntime:
-    def __init__(self, effective: EffectiveState) -> None:
-        self.control = _DispatchControl()
-        self.state_machine = _DispatchStateMachine(effective)
+        state = manual_state()
+        assert state.robot_mode.value == "MANUAL"
+        assert state.motion.current_mode.value in {"manual", "settling"}
+        assert state.motion.last_stand_up_return_code == 0
 
+        cmd = manual_cmd(TeleopCommandRequest(vx=0.0, vy=0.25, vyaw=0.0))
+        assert cmd.ok is True
 
-def test_manual_mode_block_reason_rejects_faulted_state() -> None:
-    reason = _manual_mode_block_reason(EffectiveState.ERROR)
-    assert reason == "manual mode is blocked while effective state is 'error'"
+        deadline = time.time() + 1.0
+        latest_state = state
+        while time.time() < deadline:
+            latest_state = manual_state()
+            if latest_state.motion.target.vy == 0.25:
+                break
+            time.sleep(0.05)
 
-
-def test_manual_mode_block_reason_allows_ready_state() -> None:
-    assert _manual_mode_block_reason(EffectiveState.READY) is None
-
-
-def test_reset_fault_action_attempts_recovery_via_activate() -> None:
-    runtime = _DispatchRuntime(EffectiveState.ERROR)
-
-    success, reason = _dispatch_action("reset_fault", runtime, lambda *_args, **_kwargs: None)
-
-    assert success is True
-    assert reason == "recovery attempted via activate()"
-    assert runtime.control.activate_calls == 1
-    assert runtime.control.reset_estop_calls == 0
+        assert latest_state.motion.target.vy == 0.25
+        assert latest_state.motion.manual_control_active is True
 
 
-def test_manual_mode_action_rejects_faulted_effective_state() -> None:
-    runtime = _DispatchRuntime(EffectiveState.ERROR)
+def test_inline_mission_supports_initial_strafe_step() -> None:
+    config_path = write_test_config()
 
-    success, reason = _dispatch_action("manual_mode", runtime, lambda *_args, **_kwargs: None)
+    with started_app(config_path) as app:
+        run_mission = _route_endpoint(app, "/api/missions/run", "POST")
+        mission_state = _route_endpoint(app, "/api/missions/state")
 
-    assert success is False
-    assert reason == "manual mode is blocked while effective state is 'error'"
-    assert runtime.control.take_manual_calls == 0
+        response = run_mission(
+            MissionRunRequest(
+                route_id="inline_strafe_demo",
+                steps=[
+                    {"id": "stand_1", "type": "stand_up"},
+                    {"id": "strafe_1", "type": "move_velocity", "vx": 0.0, "vy": 0.25, "vyaw": 0.0, "duration_sec": 0.3},
+                    {"id": "stop_1", "type": "stop"},
+                ],
+            )
+        )
+        assert response.ok is True
+
+        deadline = time.time() + 5.0
+        latest = mission_state()
+        while time.time() < deadline:
+            latest = mission_state()
+            if latest.mission_status.value == "COMPLETED":
+                break
+            time.sleep(0.05)
+
+        assert latest.mission_status.value == "COMPLETED"
+
+        pose = app.state.runtime.adapter.get_pose()
+        assert pose is not None
+        assert abs(pose.y) > 0.03

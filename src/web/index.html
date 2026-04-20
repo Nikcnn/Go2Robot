@@ -80,7 +80,7 @@
           <div class="button-grid">
             <button id="actStandBtn"
               data-action="stand_up"
-              data-allow="idle,standing,ready,connecting,error,damping,standing_lock">Stand / Ready</button>
+              data-allow="idle,standing,ready,connecting">Stand / Ready</button>
             <button id="actStopBtn"
               data-action="stop_motion"
               data-allow="ready,moving,standing,paused">Stop Motion</button>
@@ -125,6 +125,41 @@
             <button id="resetEstopBtn">Reset ESTOP</button>
           </div>
           <p class="hint">Keyboard teleop while in manual: W/S forward-back, A/D left-right, Q/E yaw, Space stop, X ESTOP.</p>
+        </article>
+
+        <!-- ── Teleop Speed Control ── -->
+        <article class="card speed-card">
+          <h2>Teleop Speed</h2>
+          <div class="speed-cols">
+
+            <div class="speed-col">
+              <span class="speed-label">vx</span>
+              <span class="speed-unit">m/s</span>
+              <button class="speed-btn" id="vxInc">▲</button>
+              <input type="number" class="speed-input" id="vxInput"
+                min="0.22" max="0.80" step="0.02" value="0.40" />
+              <button class="speed-btn" id="vxDec">▼</button>
+            </div>
+
+            <div class="speed-col">
+              <span class="speed-label">vy</span>
+              <span class="speed-unit">m/s</span>
+              <button class="speed-btn" id="vyInc">▲</button>
+              <input type="number" class="speed-input" id="vyInput"
+                min="0.22" max="0.60" step="0.02" value="0.30" />
+              <button class="speed-btn" id="vyDec">▼</button>
+            </div>
+
+            <div class="speed-col">
+              <span class="speed-label">vyaw</span>
+              <span class="speed-unit">rad/s</span>
+              <button class="speed-btn" id="vyawInc">▲</button>
+              <input type="number" class="speed-input" id="vyawInput"
+                min="0.45" max="1.50" step="0.05" value="0.60" />
+              <button class="speed-btn" id="vyawDec">▼</button>
+            </div>
+
+          </div>
         </article>
 
         <!-- ── Live Status (existing) ── -->

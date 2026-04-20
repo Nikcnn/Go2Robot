@@ -13,6 +13,7 @@ class StrictModel(BaseModel):
 class RobotConfig(StrictModel):
     mode: str = "mock"
     max_vx: float = 0.5
+    max_vy: float = 0.3
     max_vyaw: float = 1.0
     # go2-mode only — ignored in mock mode
     interface_name: str = "eth0"   # network interface name (NOT an IP) passed to ChannelFactory
@@ -28,6 +29,16 @@ class CameraConfig(StrictModel):
     width: int = 640
     height: int = 480
     jpeg_quality: int = 70
+
+
+class RealsenseConfig(StrictModel):
+    enabled: bool = False
+    width: int = 640
+    height: int = 480
+    fps: int = 15
+    enable_depth: bool = True
+    enable_color: bool = True
+    startup_required: bool = False
 
 
 class ControlConfig(StrictModel):
@@ -55,6 +66,7 @@ class AppConfig(StrictModel):
     robot: RobotConfig = Field(default_factory=RobotConfig)
     telemetry: TelemetryConfig = Field(default_factory=TelemetryConfig)
     camera: CameraConfig = Field(default_factory=CameraConfig)
+    realsense: RealsenseConfig = Field(default_factory=RealsenseConfig)
     control: ControlConfig = Field(default_factory=ControlConfig)
     analysis: AnalysisConfig = Field(default_factory=AnalysisConfig)
     server: ServerConfig = Field(default_factory=ServerConfig)

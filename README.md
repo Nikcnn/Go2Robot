@@ -10,57 +10,38 @@ This is not full autonomous navigation. It does not implement ROS, ROS2, Nav2, S
 
 ## Architecture
 
+```
 HTTP / WebSocket clients
-│
-▼
-FastAPI (src/api.py)
-│
-▼
-ControlCore (src/control.py)
-┌─────────────────────────────────────────────────────┐
-│ Priority: ESTOP > MANUAL > AUTO │
-│ Watchdog: zeroes velocity on stale teleop commands │
-│ can_move guard: blocks non-zero velocity when │
-│ adapter reports locomotion not ready │
-└─────────────────────────────────────────────────────┘
-│ send_velocity / stop / ensure_motion_ready / get_state
-▼
-RobotAdapterProtocol (src/robot/robot_adapter.py)
-╱ ╲
-MockRobotAdapter Go2RobotAdapter
-(always available) (requires SDK + hardware)
-
-text
+        │
+        ▼
+  FastAPI (src/api.py)
+        │
+        ▼
+  ControlCore (src/control.py)
+  ┌─────────────────────────────────────┐
+  │  Priority: ESTOP > MANUAL > AUTO    │
+  │  Watchdog: zeroes velocity on       │
+  │  stale teleop commands              │
+  └─────────────────────────────────────┘
+        │ send_velocity / stop / get_state
+        ▼
+  RobotAdapterProtocol (src/robot/robot_adapter.py)
+       ╱                    ╲
+MockRobotAdapter        Go2RobotAdapter
+(always available)      (requires SDK + hardware)
+```
 
 **Control layer rules:**
-- `ESTOP` is latched; all motion commands are blocked until explicitly reset and the robot is re-activated
-- `MANUAL` mode pauses any running mission; release does **not** auto-resume
+- `ESTOP` is latched; all motion commands are blocked until explicitly reset
+- `MANUAL` mode pauses any running mission; release does not auto-resume
 - `AUTO` is the only mode where mission steps issue `send_velocity`
-- `ControlCore.submit()` additionally checks `adapter.can_move` before forwarding any non-zero velocity command
 - A teleop watchdog thread fires `stop()` if no MANUAL command arrives within `watchdog_timeout_ms`
-
-**Locomotion state machine (`Go2RobotAdapter`):**
-
-disconnected → idle → activating → ready ↔ moving → damped
-↘ fault
-
-text
-
-| State         | can_move | Triggered by                            |
-|---------------|----------|-----------------------------------------|
-| `disconnected`| False    | Before `connect()`                      |
-| `idle`        | False    | After connect, before `activate()`      |
-| `activating`  | False    | During `StandUp` execution              |
-| `ready`       | True     | `StandUp` complete / `reset_estop()`    |
-| `moving`      | True     | `send_velocity()` with non-zero command |
-| `damped`      | False    | `emergency_stop()` → `Damp()`           |
-| `fault`       | False    | SDK error during motion                 |
 
 **Mission executor (`src/mission.py`):**
 - Loads a JSON route file, executes steps sequentially
-- Calls `ensure_motion_ready()` before the first movement step and after any post-pause resumption
 - Calls `send_velocity` only when `ControlCore.wait_until_runnable()` returns True
-- Checkpoint steps call `capture_frame` + telemetry snapshot + `analyze()` → `AnalysisResult` + storage
+- Checkpoint steps call `capture_frame` + telemetry snapshot + analysis + storage
+- When enabled, checkpoint steps also capture Intel RealSense D435i RGB-D artifacts without replacing the existing robot camera path
 
 ---
 
@@ -74,7 +55,6 @@ text
 | Telemetry           | Simulated              | Real (DDS `rt/sportmodestate`)        |
 | Pose                | Dead-reckoned          | Real (`SportModeState_.position`)     |
 | Battery             | Simulated              | Real (`rt/lowstate` BMS + power data) |
-| Locomotion states   | Tracked (mock)         | DDS-backed (`SportModeState_.mode`)   |
 | CI compatible       | Yes                    | No (hardware-dependent)               |
 
 ---
@@ -120,6 +100,15 @@ camera:
   height: 480
   jpeg_quality: 70
 
+realsense:
+  enabled: false           # optional Intel RealSense D435i service
+  width: 640
+  height: 480
+  fps: 15
+  enable_color: true
+  enable_depth: true
+  startup_required: false  # fail server startup if the camera is required but unavailable
+
 control:
   watchdog_timeout_ms: 500   # manual teleop dead-man timeout
 
@@ -149,6 +138,12 @@ pip install -r requirements.txt
 
 For Go2 hardware mode, also install the SDK (see above).
 
+For Intel RealSense D435i support, install `pyrealsense2` in the same environment:
+
+```bash
+pip install pyrealsense2
+```
+
 ---
 
 ## Running in Mock Mode
@@ -168,11 +163,15 @@ The default config has `robot.mode: mock`, so no hardware or SDK is required.
 ```bash
 # 1. Ensure Go2 is connected via ethernet on interface enp2s0
 # 2. Ensure unitree_sdk2py is installed
-# 3. Set mode in config/app_config.yaml:
+# 3. Optionally install pyrealsense2 if you want D435i support
+# 4. Set mode in config/app_config.yaml:
 #      robot:
 #        mode: go2
 #        interface_name: enp2s0
-#        camera_enabled: true
+#        camera_enabled: true    # enables the dashboard camera stream
+#      realsense:
+#        enabled: true
+#        startup_required: false # set true only if the external camera must be present
 
 python -m src.main --config config/app_config.yaml
 ```
@@ -183,11 +182,9 @@ If the SDK is missing, the server exits immediately with a clear error message b
 
 ## Open The Dashboard
 
+```
 http://127.0.0.1:8000/
-
-text
-
-`GET /api/status` now includes: `control_mode`, `locomotion_state`, `can_move`, `block_reason`, `activation_required`.
+```
 
 ---
 
@@ -211,90 +208,40 @@ The demo route lives at `config/routes/demo_route.json`.
 2. If the robot is seated or was previously damped by ESTOP, activate it first: `POST /api/robot/activate`
 3. Teleop commands: `POST /api/teleop/cmd`
 4. Manual takeover pauses the active mission
-5. Releasing manual mode (`POST /api/mode/manual/release`) sets mode back to `AUTO` but the mission stays `PAUSED_MANUAL`
-6. Resume requires an explicit: `POST /api/mission/resume`
+5. Releasing manual mode does **not** resume the mission
+6. Resume requires: `POST /api/mission/resume`
 
 ---
 
 ## ESTOP Flow
 
 1. Trigger: `POST /api/mode/estop`
-2. `emergency_stop()` issues `StopMove()` + `Damp()`; locomotion state → `damped`; `can_move = False`
-3. All motion commands are blocked centrally (ESTOP latch + `can_move` guard)
-4. Reset: `POST /api/mode/reset-estop` — clears the latch
-5. Re-activate posture: `POST /api/robot/activate` → `StandUp` → locomotion state → `ready`; `can_move = True`
-6. If ESTOP interrupted a mission, start a new mission explicitly
-
----
-
-## Control & Mission Flow
-
-The project's movement logic is centred around a hierarchical control system:
-
-1. **Arbitration priority:** ESTOP (latched) > MANUAL > AUTO
-   - **ESTOP:** Issues `StopMove + Damp`, sets `locomotion_state=damped`, blocks all commands until reset + re-activation
-   - **MANUAL:** Allows teleop via `POST /api/teleop/cmd`. Watchdog zeroes velocity if no command arrives within 500 ms (configurable). Taking manual control pauses any active mission
-   - **AUTO:** The only mode where `MissionExecutor` can issue commands; `ControlCore.submit()` additionally checks `adapter.can_move` before forwarding any non-zero velocity
-
-2. **Mission execution:**
-   - Missions follow a scripted JSON route (`config/routes/`)
-   - `ensure_motion_ready()` is called before the first movement step and after any post-pause resumption
-   - Each step issues `Move(vx, vy, vyaw)` for a fixed `duration_sec`
-   - `ControlCore.wait_until_runnable()` gates every step
-
-3. **Normal stop vs ESTOP:**
-   - Normal stop: `stop()` → `StopMove()` only; posture preserved; `locomotion_state=ready`
-   - ESTOP: `emergency_stop()` → `StopMove() + Damp()`; `locomotion_state=damped`; requires full re-activation before motion resumes
-
----
-
-## Checkpoint Analysis
-
-Every checkpoint step produces a typed `AnalysisResult`:
-
-```python
-@dataclass
-class AnalysisResult:
-    analyzer_name: str
-    label: str
-    score: float
-    passed: bool
-    threshold: float
-    timestamp: str
-```
-
-- `FrameDiffAnalyzer` is the default implementation (frame-difference based)
-- `NarrowClassifierHook` is a lightweight classical-CV presence classifier; with `reference_image` it uses histogram + edge similarity, otherwise it falls back to edge/contrast objectness
-- `save_checkpoint()` accepts `AnalysisResult | dict`; existing dict callers still work
-- Analysis events emit `analyzer_name`, `label`, `passed`, `score` fields
+2. All motion commands are blocked centrally and the robot is stopped with passive damping
+3. Reset: `POST /api/mode/reset-estop`
+4. Re-activate posture before moving again: `POST /api/robot/activate`
+5. If ESTOP interrupted a mission, start a new mission explicitly
 
 ---
 
 ## Run Folder Layout
 
+```
 runs/mission_<id>/
 ├── mission_meta.json
 ├── event_log.jsonl
 ├── telemetry.jsonl
 ├── images/
 ├── analysis/
+├── realsense/
 └── final_report.json
+```
 
-text
+When `realsense.enabled: true`, each checkpoint can add:
+- `realsense/<waypoint>_<timestamp>_color.jpg`
+- `realsense/<waypoint>_<timestamp>_depth.npy`
+- `realsense/<waypoint>_<timestamp>_depth_preview.png`
 
----
-
-## API Status Fields
-
-`GET /api/status` response includes these fields:
-
-| Field                | Type    | Description                                      |
-|----------------------|---------|--------------------------------------------------|
-| `control_mode`       | string  | Current mode: `AUTO`, `MANUAL`, `ESTOP`          |
-| `locomotion_state`   | string  | One of 7 states (see state machine above)        |
-| `can_move`           | bool    | Whether the adapter accepts velocity commands    |
-| `block_reason`       | string? | Human-readable reason when `can_move=False`      |
-| `activation_required`| bool    | True when state is `idle` or `damped`            |
+The checkpoint entry in `final_report.json` also includes structured `sensor_captures.realsense` metadata with status, timestamps, frame ids, relative artifact paths, resolution, and any available intrinsics.
 
 ---
 
@@ -304,7 +251,7 @@ text
 pytest
 ```
 
-85 tests, all hardware-free, run against mock adapters. Go2-specific paths are covered by patching `SDK_AVAILABLE`. Regression tests cover DDS-backed readiness and damping behaviour (`test_go2_adapter.py`) and `NarrowClassifierHook` classification (`test_lifecycle.py`).
+All tests are hardware-free and run against mock adapters. Go2-specific paths are covered by patching `SDK_AVAILABLE`.
 
 ---
 
@@ -312,22 +259,11 @@ pytest
 
 - **Scripted motion only** — no autonomous navigation, SLAM, or obstacle avoidance
 - **Normal stop vs ESTOP are different** — normal stop uses `StopMove()` to keep posture; ESTOP adds `Damp()`, which requires `POST /api/robot/activate` before motion resumes
-- **`ensure_motion_ready()` checks DDS motion mode** — readiness consults `SportModeState_.mode` and only returns once the robot reaches a ready mode (`balanceStand`, `pose`, or `locomotion`)
-- **`GET /api/status` uses synchronized adapter properties** — reads `locomotion_state`, `can_move`, and `block_reason` through locked adapter accessors
-- **`NarrowClassifierHook` is lightweight, not task-specific ML** — real classical-CV classifier, but task-specific models may outperform it for narrow domains
-- **Camera reliability depends on robot services** — adapter prefers Unitree `VideoClient`, falls back to UDP/GStreamer when SDK camera frames are unavailable
-- **Detailed fault text is still partly generic** — `SportModeState_.error_code` is shown as raw code + hex + active bits; no official per-bit decoder
-- **Timed velocity pulses, not waypoints** — actual displacement depends on floor friction and robot state
-- **`ChannelFactory` is a process singleton** — `interface_name` is set on first `connect()` call; cannot change without restarting the process
-
----
-
-## Migration Notes (from previous release)
-
-- `RobotState` gains 3 new fields (`locomotion_state`, `can_move`, `block_reason`) with defaults — no config changes needed
-- `StatusResponse` gains 5 new fields with defaults — existing API clients receive them automatically
-- `save_checkpoint()` signature changed: `analysis_result` is now `AnalysisResult | dict`; existing dict callers still work
-- Analysis events now emit `analyzer_name`/`label`/`passed`/`score` instead of `analyzer`/`result`
+- **Camera reliability depends on robot services** — the adapter now prefers Unitree `VideoClient` and falls back to the older UDP/GStreamer path when SDK camera frames are unavailable
+- **RealSense is an additional sensor, not a replacement camera path** — checkpoint analysis still uses the existing robot/mock frame path; the D435i adds optional RGB-D artifacts and reports a clear unavailable status when `pyrealsense2` is missing or the device is disconnected
+- **Detailed fault text is still partly generic** — Unitree exposes `SportModeState_.error_code`, but this repo does not have an official per-bit decoder, so the dashboard shows the raw code, hex value, active bits, and related service/BMS warnings
+- **Timed velocity pulses, not waypoints** — each mission step issues `Move(vx, vy, vyaw)` for a fixed `duration_sec`; actual displacement depends on floor friction and robot state
+- **ChannelFactory is a process singleton** — `interface_name` is set on first `connect()` call and cannot be changed without restarting the process
 
 ---
 
