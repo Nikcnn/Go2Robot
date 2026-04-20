@@ -2,7 +2,7 @@ robot:
   mode: go2
   interface_name: enp0s20f0u1c2
   camera_enabled: true
-  max_vx: 0.5
+  max_vx: 1
   max_vyaw: 1.0
 telemetry:
   hz: 5
@@ -10,7 +10,7 @@ camera:
   fps: 10
   width: 640
   height: 480
-  jpeg_quality: 70
+  jpeg_quality: 100
 control:
   watchdog_timeout_ms: 500
 analysis:

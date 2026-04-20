@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field as dc_field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
@@ -31,6 +30,14 @@ class MissionStatus(str, Enum):
     ESTOPPED = "ESTOPPED"
 
 
+class MotionMode(str, Enum):
+    IDLE = "idle"
+    MANUAL = "manual"
+    MISSION = "mission"
+    SETTLING = "settling"
+    STOPPED = "stopped"
+
+
 class CommandSource(str, Enum):
     AUTO = "AUTO"
     MANUAL = "MANUAL"
@@ -51,16 +58,6 @@ class RobotState(StrictModel):
     imu_yaw: float | None = None
     camera_status: str | None = None
     faults: list[str] = Field(default_factory=list)
-    # Raw telemetry fields populated by the real Go2 adapter.
-    # None means no DDS sample received yet (not "no error").
-    sport_mode_error: int | None = None   # SportModeState_.error_code; 0 = no error
-    motion_mode: int | None = None        # SportModeState_.mode; 0 = idle
-    bms_status: int | None = None         # LowState_.bms_state.status; 0x08 = abnormal
-    # Locomotion lifecycle fields — populated by adapter.get_state().
-    locomotion_state: str = "unknown"     # disconnected|idle|activating|ready|moving|damped|fault
-    can_move: bool = False
-    block_reason: str | None = None       # estop_latched|robot_idle|robot_damped|sdk_not_connected|
-                                          # sport_service_unavailable|fault_present|watchdog_timeout|mode_rules
 
 
 class MotionCommand(StrictModel):
@@ -72,7 +69,7 @@ class MotionCommand(StrictModel):
 
 class MoveStep(StrictModel):
     id: str
-    type: Literal["move"]
+    type: Literal["move", "move_velocity"]
     vx: float
     vy: float = 0.0
     vyaw: float = 0.0
@@ -102,8 +99,19 @@ class StopStep(StrictModel):
     type: Literal["stop"]
 
 
+class StandUpStep(StrictModel):
+    id: str
+    type: Literal["stand_up"]
+
+
+class WaitStep(StrictModel):
+    id: str
+    type: Literal["wait", "settle"]
+    duration_sec: float = Field(gt=0)
+
+
 RouteStep = Annotated[
-    MoveStep | RotateStep | CheckpointStep | StopStep,
+    MoveStep | RotateStep | CheckpointStep | StopStep | StandUpStep | WaitStep,
     Field(discriminator="type"),
 ]
 
@@ -128,6 +136,11 @@ class MissionStartRequest(StrictModel):
     route_id: str
 
 
+class MissionRunRequest(StrictModel):
+    route_id: str
+    steps: list[RouteStep]
+
+
 class TeleopCommandRequest(StrictModel):
     vx: float = 0.0
     vy: float = 0.0
@@ -147,12 +160,7 @@ class StatusResponse(StrictModel):
     route_id: str | None = None
     mission_id: str | None = None
     active_step_id: str | None = None
-    # Part C — locomotion lifecycle fields
-    control_mode: str = "auto"            # auto|manual|estop
-    locomotion_state: str = "unknown"
-    can_move: bool = False
-    block_reason: str | None = None
-    activation_required: bool = False
+    sensor_statuses: dict[str, dict[str, object]] = Field(default_factory=dict)
 
 
 class MissionCurrentResponse(StrictModel):
@@ -164,6 +172,38 @@ class MissionCurrentResponse(StrictModel):
     steps_executed: int = 0
     paused: bool = False
     estop_latched: bool = False
+
+
+class VelocityTriplet(StrictModel):
+    vx: float = 0.0
+    vy: float = 0.0
+    vyaw: float = 0.0
+
+
+class MotionDiagnosticsResponse(StrictModel):
+    current_mode: MotionMode = MotionMode.IDLE
+    target: VelocityTriplet = Field(default_factory=VelocityTriplet)
+    current: VelocityTriplet = Field(default_factory=VelocityTriplet)
+    last_nonzero_command: VelocityTriplet | None = None
+    last_move_return_code: int | None = None
+    last_stop_return_code: int | None = None
+    last_stand_up_return_code: int | None = None
+    last_action_message: str = ""
+    standup_settle_remaining_sec: float = 0.0
+    manual_control_active: bool = False
+    mission_control_active: bool = False
+
+
+class MotionStateResponse(StrictModel):
+    robot_mode: RobotMode
+    mission_status: MissionStatus
+    mission_id: str | None = None
+    route_id: str | None = None
+    active_step_id: str | None = None
+    steps_executed: int = 0
+    paused: bool = False
+    estop_latched: bool = False
+    motion: MotionDiagnosticsResponse
 
 
 class EventRecord(StrictModel):
@@ -179,33 +219,6 @@ class AnalyzerResult(StrictModel):
     result: str
     score: float | None = None
     details: dict = Field(default_factory=dict)
-
-
-@dataclass
-class AnalysisResult:
-    """Structured checkpoint analysis output."""
-    analyzer_name: str
-    label: str          # "changed"|"stable"|"present"|"absent"|"mock"|...
-    score: float
-    passed: bool
-    threshold: float
-    details: dict
-    reference_image_path: str | None = None
-    image_path: str = ""      # set by storage after save
-    timestamp: str = ""       # ISO-8601, set at checkpoint time
-
-    def to_dict(self) -> dict:
-        return {
-            "analyzer_name": self.analyzer_name,
-            "label": self.label,
-            "score": self.score,
-            "passed": self.passed,
-            "threshold": self.threshold,
-            "details": self.details,
-            "reference_image_path": self.reference_image_path,
-            "image_path": self.image_path,
-            "timestamp": self.timestamp,
-        }
 
 
 class FinalReport(StrictModel):

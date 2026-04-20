@@ -14,6 +14,19 @@ def test_load_valid_demo_route() -> None:
     assert [step.type for step in route.steps] == ["move", "checkpoint", "rotate", "stop"]
 
 
+def test_load_waypoint_image_test_route() -> None:
+    route = load_route_file("config/routes/waypoint_image_test.json")
+    assert route.route_id == "waypoint_image_test_v1"
+    assert [step.type for step in route.steps] == [
+        "move",
+        "checkpoint",
+        "rotate",
+        "move",
+        "checkpoint",
+        "stop",
+    ]
+
+
 def test_reject_invalid_route_step() -> None:
     route_path = make_test_dir("route_loader") / "bad_route.json"
     route_path.write_text(

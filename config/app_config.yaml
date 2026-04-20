@@ -9,6 +9,14 @@ camera:
   width: 640
   height: 480
   jpeg_quality: 70
+realsense:
+  enabled: false
+  width: 640
+  height: 480
+  fps: 15
+  enable_color: true
+  enable_depth: true
+  startup_required: false
 control:
   watchdog_timeout_ms: 1500
 analysis:
