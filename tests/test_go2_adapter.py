@@ -29,16 +29,17 @@ def test_adapter_selection_mock():
 
 
 # ---------------------------------------------------------------------------
-# 2. Adapter selection — go2 mode fails fast when SDK is absent
+# 2. Adapter selection — go2 mode reports missing SDK on connect
 # ---------------------------------------------------------------------------
 
 def test_adapter_selection_go2_sdk_missing():
-    """build_robot_adapter('go2') must raise RuntimeError when unitree_sdk2py is not installed."""
+    """build_robot_adapter('go2') can construct, but connect() must fail clearly without the SDK."""
     import src.robot.go2_adapter as _mod  # ensure module is loaded first
 
     with mock.patch.object(_mod, "SDK_AVAILABLE", False):
+        adapter = build_robot_adapter("go2")
         with pytest.raises(RuntimeError, match="unitree_sdk2py"):
-            build_robot_adapter("go2")
+            adapter.connect()
 
 
 # ---------------------------------------------------------------------------
@@ -218,18 +219,19 @@ def test_go2_adapter_prefers_video_client_for_camera_frames():
 
 
 # ---------------------------------------------------------------------------
-# 5. Go2RobotAdapter construction raises clearly when SDK is absent
+# 5. Go2RobotAdapter connect raises clearly when SDK is absent
 # ---------------------------------------------------------------------------
 
 def test_go2_adapter_graceful_no_sdk():
-    """Constructor must raise RuntimeError with 'unitree_sdk2py' in message."""
+    """connect() must raise RuntimeError with 'unitree_sdk2py' in message."""
     import src.robot.go2_adapter as _mod
 
     with mock.patch.object(_mod, "SDK_AVAILABLE", False):
         from src.robot.go2_adapter import Go2RobotAdapter
 
+        adapter = Go2RobotAdapter(interface_name="eth0", camera_enabled=False)
         with pytest.raises(RuntimeError) as exc_info:
-            Go2RobotAdapter(interface_name="eth0", camera_enabled=False)
+            adapter.connect()
 
     assert "unitree_sdk2py" in str(exc_info.value)
 

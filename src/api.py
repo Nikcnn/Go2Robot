@@ -4,6 +4,7 @@ import asyncio
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Optional, Union, Dict, Tuple, List, Any
 
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.encoders import jsonable_encoder
@@ -35,7 +36,7 @@ class AppRuntime:
     config: AppConfig
     config_path: Path
     project_root: Path
-    adapter: object
+    adapter: Any
     control: ControlCore
     telemetry: TelemetryService
     storage: StorageManager
@@ -93,7 +94,7 @@ def _start_runtime(runtime: AppRuntime, emit_event) -> bool:
     return adapter_ready
 
 
-_STRUCTURED_LOG_MAP: dict[str, tuple[str, str]] = {
+_STRUCTURED_LOG_MAP: Dict[str, Tuple[str, str]] = {
     "mission_started": ("info", "mission"),
     "mission_running": ("info", "mission"),
     "mission_completed": ("info", "mission"),
@@ -115,7 +116,7 @@ _STRUCTURED_LOG_MAP: dict[str, tuple[str, str]] = {
 }
 
 
-def create_app(config: AppConfig | None = None, config_path: str | Path = "config/app_config.yaml") -> FastAPI:
+def create_app(config: Optional[AppConfig] = None, config_path: Union[str, Path] = "config/app_config.yaml") -> FastAPI:
     config_file = Path(config_path).resolve()
     loaded_config = config or load_app_config(config_file)
     project_root = config_file.parent.parent
@@ -130,7 +131,7 @@ def create_app(config: AppConfig | None = None, config_path: str | Path = "confi
     state_machine = RobotStateMachine()
     event_log = PersistentEventLog(runs_dir / "events.jsonl")
 
-    def emit_event(event: str, details: dict) -> None:
+    def emit_event(event: str, details: Dict) -> None:
         storage.record_event(event, details)
         events.publish(event, details)
         mapping = _STRUCTURED_LOG_MAP.get(event)
@@ -507,7 +508,7 @@ def create_app(config: AppConfig | None = None, config_path: str | Path = "confi
         )
 
     @app.get("/api/robot/status")
-    def get_robot_status() -> dict:
+    def get_robot_status() -> Dict:
         snap = runtime.telemetry.get_latest()
         sm_snap = runtime.state_machine.snapshot()
         rs = snap.robot_state
@@ -529,17 +530,17 @@ def create_app(config: AppConfig | None = None, config_path: str | Path = "confi
 
     @app.get("/api/robot/history")
     def get_robot_history(
-        level: str | None = Query(default=None),
-        category: str | None = Query(default=None),
+        level: Optional[str] = Query(default=None),
+        category: Optional[str] = Query(default=None),
         limit: int = Query(default=100, ge=1, le=500),
-    ) -> dict:
+    ) -> Dict:
         records = runtime.event_log.query(level=level, category=category, limit=limit)
         return {"records": records, "count": len(records)}
 
     return app
 
 
-def _dispatch_action(action: str, runtime: AppRuntime, emit_event) -> tuple[bool, str]:
+def _dispatch_action(action: str, runtime: AppRuntime, emit_event) -> Tuple[bool, str]:
     """Execute a named operator action. Returns (success, reason)."""
     ctrl = runtime.control
 

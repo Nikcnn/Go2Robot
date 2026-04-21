@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
+from typing import Optional, Union, Dict, List
 
 import cv2
 from pydantic import BaseModel
@@ -33,16 +34,16 @@ class RunContext:
     route_id: str
     run_dir: Path
     started_at: datetime
-    report: dict
+    report: Dict
 
 
 class StorageManager:
-    def __init__(self, runs_dir: str | Path) -> None:
+    def __init__(self, runs_dir: Union[str, Path]) -> None:
         self.runs_dir = Path(runs_dir)
         self.runs_dir.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()
-        self._active_run: RunContext | None = None
-        self.last_report_path: Path | None = None
+        self._active_run: Optional[RunContext] = None
+        self.last_report_path: Optional[Path] = None
 
     def start_run(self, route_id: str) -> RunContext:
         with self._lock:
@@ -82,7 +83,7 @@ class StorageManager:
             )
             return context
 
-    def record_event(self, event: str, details: dict | None = None) -> dict:
+    def record_event(self, event: str, details: Optional[Dict] = None) -> Dict:
         details = details or {}
         record = {"ts": utc_now(), "event": event, "details": details}
         with self._lock:
@@ -96,7 +97,7 @@ class StorageManager:
                     self._active_run.report["errors"].append(record)
         return record
 
-    def append_telemetry(self, snapshot: dict) -> None:
+    def append_telemetry(self, snapshot: Dict) -> None:
         with self._lock:
             if self._active_run is None:
                 return
@@ -106,10 +107,10 @@ class StorageManager:
         self,
         waypoint_id: str,
         frame,
-        analysis_result: dict,
-        telemetry_snapshot: dict,
-        sensor_captures: dict[str, dict] | None = None,
-    ) -> dict | None:
+        analysis_result: Dict,
+        telemetry_snapshot: Dict,
+        sensor_captures: Optional[Dict[str, Dict]] = None,
+    ) -> Optional[Dict]:
         with self._lock:
             if self._active_run is None:
                 return None
@@ -145,7 +146,7 @@ class StorageManager:
             )
             return checkpoint
 
-    def finalize_run(self, mission_status: str, steps_executed: int) -> Path | None:
+    def finalize_run(self, mission_status: str, steps_executed: int) -> Optional[Path]:
         with self._lock:
             if self._active_run is None:
                 return None
@@ -160,19 +161,19 @@ class StorageManager:
             self._active_run = None
             return report_path
 
-    def active_mission_id(self) -> str | None:
+    def active_mission_id(self) -> Optional[str]:
         with self._lock:
             return self._active_run.mission_id if self._active_run else None
 
-    def active_run_dir(self) -> Path | None:
+    def active_run_dir(self) -> Optional[Path]:
         with self._lock:
             return self._active_run.run_dir if self._active_run else None
 
-    def _append_jsonl(self, path: Path, payload: dict) -> None:
+    def _append_jsonl(self, path: Path, payload: Dict) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(payload, default=_json_default) + "\n")
 
-    def _write_json(self, path: Path, payload: dict) -> None:
+    def _write_json(self, path: Path, payload: Dict) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(payload, default=_json_default, indent=2), encoding="utf-8")

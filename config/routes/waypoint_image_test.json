@@ -1,0 +1,47 @@
+{
+  "route_id": "waypoint_image_test_v1",
+  "steps": [
+    {
+      "id": "move_to_panel_a",
+      "type": "move",
+      "vx": 1,
+      "vy": 0.0,
+      "vyaw": 0.0,
+      "duration_sec": 2.0
+    },
+    {
+      "id": "checkpoint_panel_a",
+      "type": "checkpoint",
+      "waypoint_id": "panel_A_test",
+      "settle_time_sec": 0.3,
+      "analyzer": "simple_presence"
+    },
+    {
+      "id": "rotate_to_panel_b",
+      "type": "rotate",
+      "vx": 0.0,
+      "vy": 0.0,
+      "vyaw": 1,
+      "duration_sec": 0.8
+    },
+    {
+      "id": "move_to_panel_b",
+      "type": "move",
+      "vx": 0.12,
+      "vy": 0.0,
+      "vyaw": 0.0,
+      "duration_sec": 0.8
+    },
+    {
+      "id": "checkpoint_panel_b",
+      "type": "checkpoint",
+      "waypoint_id": "panel_B_test",
+      "settle_time_sec": 0.3,
+      "analyzer": "simple_presence"
+    },
+    {
+      "id": "stop_final",
+      "type": "stop"
+    }
+  ]
+}

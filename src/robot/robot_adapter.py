@@ -4,7 +4,7 @@ import math
 import threading
 import time
 from dataclasses import dataclass
-from typing import Protocol, runtime_checkable
+from typing import Optional, Protocol, runtime_checkable, List
 
 import cv2
 import numpy as np
@@ -24,18 +24,19 @@ class RobotAdapterProtocol(Protocol):
 
     capabilities: AdapterCapabilities
 
-    def activate(self) -> int | None: ...
+    def activate(self) -> Optional[int]: ...
     def connect(self) -> None: ...
     def disconnect(self) -> None: ...
     def enter_manual_mode(self) -> None: ...
     def emergency_stop(self) -> None: ...
     def exit_manual_mode(self) -> None: ...
-    def send_velocity(self, vx: float, vy: float, vyaw: float) -> int | None: ...
-    def stand_up(self) -> int | None: ...
-    def stop(self) -> int | None: ...
-    def sit_down(self) -> int | None: ...
+    def send_velocity(self, vx: float, vy: float, vyaw: float) -> Optional[int]: ...
+    def stand_up(self) -> Optional[int]: ...
+    def stop(self) -> Optional[int]: ...
+    def sit_down(self) -> Optional[int]: ...
     def get_state(self) -> RobotState: ...
-    def get_camera_frame(self) -> bytes | None: ...
+    def get_camera_frame(self) -> Optional[bytes]: ...
+    def ensure_motion_ready(self, timeout: float = 5.0) -> None: ...
 
 
 # Backward-compat alias — existing code that references RobotAdapter keeps working.
@@ -58,28 +59,45 @@ class MockRobotAdapter:
         self._pose = Pose(x=0.0, y=0.0, yaw=0.0)
         self._last_update = time.monotonic()
         self._battery_base = 92.0
+        self._locomotion_state = "disconnected"
+        self.can_move = False
+        self.block_reason = "sdk_not_connected"
 
     def connect(self) -> None:
         with self._lock:
             self._connected = True
+            self._locomotion_state = "ready"
+            self.can_move = True
+            self.block_reason = None
             self._last_update = time.monotonic()
 
     def activate(self) -> int:
         return self.stand_up()
 
     def stand_up(self) -> int:
+        with self._lock:
+            self._locomotion_state = "ready"
+            self.can_move = True
+            self.block_reason = None
         return 0
 
     def disconnect(self) -> None:
         with self._lock:
             self._integrate_locked()
             self._connected = False
+            self._locomotion_state = "disconnected"
+            self.can_move = False
+            self.block_reason = "sdk_not_connected"
             self._vx = 0.0
             self._vy = 0.0
             self._vyaw = 0.0
 
     def emergency_stop(self) -> None:
         self.stop()
+        with self._lock:
+            self._locomotion_state = "damped"
+            self.can_move = False
+            self.block_reason = "robot_damped"
 
     def enter_manual_mode(self) -> None:
         return
@@ -89,10 +107,16 @@ class MockRobotAdapter:
 
     def send_velocity(self, vx: float, vy: float, vyaw: float) -> int:
         with self._lock:
+            if not self.can_move:
+                return -1
             self._integrate_locked()
             self._vx = float(vx)
             self._vy = float(vy)
             self._vyaw = float(vyaw)
+            if abs(vx) > 0.01 or abs(vy) > 0.01 or abs(vyaw) > 0.01:
+                self._locomotion_state = "moving"
+            else:
+                self._locomotion_state = "ready"
         return 0
 
     def stop(self) -> int:
@@ -105,6 +129,10 @@ class MockRobotAdapter:
 
     def sit_down(self) -> int:
         return self.stop()
+
+    def ensure_motion_ready(self, timeout: float = 5.0) -> None:
+        if not self.can_move:
+            raise RuntimeError(f"Mock motion not ready: {self.block_reason}")
 
     def get_state(self) -> RobotState:
         with self._lock:
@@ -121,20 +149,22 @@ class MockRobotAdapter:
                 imu_yaw=round(self._pose.yaw, 3),
                 camera_status="Live via mock camera",
                 faults=[] if self._connected else ["mock_disconnected"],
+                locomotion_state=self._locomotion_state,
+                can_move=self.can_move,
+                block_reason=self.block_reason,
             )
 
-    def get_pose(self) -> Pose | None:
+    def get_pose(self) -> Optional[Pose]:
         with self._lock:
             self._integrate_locked()
             return Pose(x=self._pose.x, y=self._pose.y, yaw=self._pose.yaw)
 
-    def capture_frame(self) -> np.ndarray | None:
+    def capture_frame(self) -> Optional[np.ndarray]:
         """Return synthesised frame as ndarray. Used by streaming/mission code."""
         with self._lock:
             self._integrate_locked()
             pose = Pose(x=self._pose.x, y=self._pose.y, yaw=self._pose.yaw)
-            battery_drop = (time.monotonic() % 900.0) / 900.0 * 6.0
-            battery = max(10.0, self._battery_base - battery_drop)
+            battery = 92.0 # simplified
 
         t = time.monotonic()
         frame = np.zeros((self.height, self.width, 3), dtype=np.uint8)
@@ -164,18 +194,9 @@ class MockRobotAdapter:
             (255, 255, 255),
             2,
         )
-        cv2.putText(
-            frame,
-            f"battery={battery:.1f}%",
-            (18, self.height - 16),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.65,
-            (255, 255, 255),
-            2,
-        )
         return frame
 
-    def get_camera_frame(self) -> bytes | None:
+    def get_camera_frame(self) -> Optional[bytes]:
         """Return latest frame encoded as JPEG bytes."""
         frame = self.capture_frame()
         if frame is None:
@@ -203,7 +224,7 @@ def build_robot_adapter(
     mode: str,
     width: int = 640,
     height: int = 480,
-    interface_name: str | None = None,
+    interface_name: Optional[str] = None,
     camera_enabled: bool = False,
 ) -> RobotAdapterProtocol:
     if mode == "mock":

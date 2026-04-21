@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Union
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
@@ -74,7 +75,7 @@ class AppConfig(StrictModel):
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
 
 
-def load_app_config(path: str | Path) -> AppConfig:
+def load_app_config(path: Union[str, Path]) -> AppConfig:
     config_path = Path(path)
     data = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
     return AppConfig.model_validate(data)

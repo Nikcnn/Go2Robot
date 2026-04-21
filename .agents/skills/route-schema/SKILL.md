@@ -10,7 +10,7 @@ Use this skill only for:
 - `tests/test_route_loader.py`
 
 Project rules:
-- Python 3.11+ only
+- Python 3.8 only
 - pydantic v2 only
 - Scripted route execution only
 - No ROS, ROS2, Nav2, SLAM, RViz, Gazebo

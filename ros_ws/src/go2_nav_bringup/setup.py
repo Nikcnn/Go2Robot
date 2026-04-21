@@ -19,6 +19,6 @@ setup(
     zip_safe=True,
     maintainer="Go2 Robot",
     maintainer_email="devnull@example.com",
-    description="Go2 navigation bringup assets for ROS 2 Humble.",
+    description="Go2 navigation bringup assets for ROS 2 Foxy.",
     license="Proprietary",
 )
