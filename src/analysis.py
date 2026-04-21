@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Optional
 
 import cv2
 import numpy as np
@@ -8,7 +9,7 @@ import numpy as np
 from .models import AnalyzerResult
 
 
-def analyze(frame: np.ndarray | None, analyzer: str | None, params: dict | None = None) -> dict:
+def analyze(frame: Optional[np.ndarray], analyzer: Optional[str], params: Optional[dict] = None) -> dict:
     params = params or {}
     if analyzer == "frame_diff":
         return _frame_diff(frame, params).model_dump(mode="json")
@@ -22,7 +23,7 @@ def analyze(frame: np.ndarray | None, analyzer: str | None, params: dict | None 
     ).model_dump(mode="json")
 
 
-def _frame_diff(frame: np.ndarray | None, params: dict) -> AnalyzerResult:
+def _frame_diff(frame: Optional[np.ndarray], params: dict) -> AnalyzerResult:
     if frame is None:
         return AnalyzerResult(
             analyzer="frame_diff",
@@ -73,7 +74,7 @@ def _frame_diff(frame: np.ndarray | None, params: dict) -> AnalyzerResult:
     )
 
 
-def _simple_presence(frame: np.ndarray | None) -> AnalyzerResult:
+def _simple_presence(frame: Optional[np.ndarray]) -> AnalyzerResult:
     if frame is None:
         return AnalyzerResult(
             analyzer="simple_presence",

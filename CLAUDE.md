@@ -1,16 +1,10 @@
 # Go2 Inspection System
 
-## Project shape
-- This repo now has two active layers:
-- `src/`: the existing Python operator app with FastAPI, vanilla dashboard, scripted missions, storage, reports, image analysis, mock mode, RealSense support, and direct Go2 SDK integration.
-- `ros_ws/`: the ROS 2 Humble workspace with `go2_interfaces`, `go2_bridge`, `go2_mission`, and `go2_nav_bringup`.
-- `shared_missions/`: coordinate missions and shared maps for the ROS 2 layer.
-
-## Scope
-- Safe test-environment only.
-- Keep the current Python app runnable end-to-end in mock mode.
-- Keep the ROS 2 layer aligned with Ubuntu 22.04 + ROS 2 Humble.
-- Do not present the system as production-ready autonomy.
+## Hard scope
+- Safe test-environment MVP only.
+- Python 3.9+ only.
+- Allowed stack: FastAPI, Uvicorn, OpenCV, numpy, PyYAML, pydantic v2, pytest.
+- No ROS/ROS2, Nav2, SLAM, RViz, Gazebo, BIM, digital twin, manipulator, fleet management, auth framework, React/Vue, frontend build tools.
 
 ## Non-negotiables
 - Never invent Unitree SDK method names.

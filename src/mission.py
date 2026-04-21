@@ -5,6 +5,7 @@ import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional, Union
 
 from pydantic import ValidationError
 
@@ -12,7 +13,7 @@ from .analysis import analyze
 from .models import CheckpointStep, CommandSource, MissionStatus, MotionCommand, RouteModel
 
 
-def load_route_file(path: str | Path) -> RouteModel:
+def load_route_file(path: Union[str, Path]) -> RouteModel:
     route_path = Path(path)
     data = json.loads(route_path.read_text(encoding="utf-8"))
     try:
@@ -21,7 +22,7 @@ def load_route_file(path: str | Path) -> RouteModel:
         raise ValueError(f"Invalid route file {route_path}: {exc}") from exc
 
 
-def resolve_route_path(routes_dir: str | Path, route_id: str) -> Path:
+def resolve_route_path(routes_dir: Union[str, Path], route_id: str) -> Path:
     routes_path = Path(routes_dir)
     direct_candidate = routes_path / route_id
     if direct_candidate.exists():
@@ -42,8 +43,8 @@ def resolve_route_path(routes_dir: str | Path, route_id: str) -> Path:
 class MissionManager:
     def __init__(
         self,
-        routes_dir: str | Path,
-        project_root: str | Path,
+        routes_dir: Union[str, Path],
+        project_root: Union[str, Path],
         control,
         adapter,
         telemetry,
@@ -62,7 +63,7 @@ class MissionManager:
         self.event_callback = event_callback
         self.realsense_camera = realsense_camera
         self._lock = threading.Lock()
-        self._thread: threading.Thread | None = None
+        self._thread: Optional[threading.Thread] = None
 
     def start(self, route_id: str) -> str:
         route_path = resolve_route_path(self.routes_dir, route_id)
@@ -187,7 +188,7 @@ class MissionManager:
             remaining -= chunk
         return True
 
-    def _resolve_reference_image(self, reference_image: str | None) -> str | None:
+    def _resolve_reference_image(self, reference_image: Optional[str]) -> Optional[str]:
         if not reference_image:
             return None
         candidate = Path(reference_image)

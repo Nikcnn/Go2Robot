@@ -4,6 +4,7 @@ import asyncio
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Optional, Union
 
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.encoders import jsonable_encoder
@@ -115,7 +116,7 @@ _STRUCTURED_LOG_MAP: dict[str, tuple[str, str]] = {
 }
 
 
-def create_app(config: AppConfig | None = None, config_path: str | Path = "config/app_config.yaml") -> FastAPI:
+def create_app(config: Optional[AppConfig] = None, config_path: Union[str, Path] = "config/app_config.yaml") -> FastAPI:
     config_file = Path(config_path).resolve()
     loaded_config = config or load_app_config(config_file)
     project_root = config_file.parent.parent
@@ -529,8 +530,8 @@ def create_app(config: AppConfig | None = None, config_path: str | Path = "confi
 
     @app.get("/api/robot/history")
     def get_robot_history(
-        level: str | None = Query(default=None),
-        category: str | None = Query(default=None),
+        level: Optional[str] = Query(default=None),
+        category: Optional[str] = Query(default=None),
         limit: int = Query(default=100, ge=1, le=500),
     ) -> dict:
         records = runtime.event_log.query(level=level, category=category, limit=limit)

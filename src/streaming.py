@@ -5,6 +5,7 @@ import threading
 import time
 from collections import deque
 from datetime import datetime, timezone
+from typing import Optional
 
 import cv2
 
@@ -18,7 +19,7 @@ class EventBus:
         self._events = deque(maxlen=history_limit)
         self._next_sequence = 1
 
-    def publish(self, event: str, details: dict | None = None) -> dict:
+    def publish(self, event: str, details: Optional[dict] = None) -> dict:
         record = {
             "sequence": None,
             "ts": datetime.now(timezone.utc),
@@ -49,8 +50,8 @@ class CameraStream:
         self.jpeg_quality = jpeg_quality
         self._lock = threading.Lock()
         self._stop_event = threading.Event()
-        self._thread: threading.Thread | None = None
-        self._latest_jpeg: bytes | None = None
+        self._thread: Optional[threading.Thread] = None
+        self._latest_jpeg: Optional[bytes] = None
 
     def start(self) -> None:
         self._capture_once()
@@ -62,7 +63,7 @@ class CameraStream:
         if self._thread:
             self._thread.join(timeout=1.0)
 
-    def get_latest_jpeg(self) -> bytes | None:
+    def get_latest_jpeg(self) -> Optional[bytes]:
         with self._lock:
             return self._latest_jpeg
 

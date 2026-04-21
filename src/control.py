@@ -5,6 +5,7 @@ import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Optional
 
 from .models import (
     CommandSource,
@@ -56,7 +57,7 @@ class ControlCore:
         max_vy: float,
         max_vyaw: float,
         watchdog_timeout_ms: int,
-        event_callback: Callable[[str, dict], None] | None = None,
+        event_callback: Optional[Callable[[str, dict], None]] = None,
     ) -> None:
         self.adapter = adapter
         self.max_vx = max_vx
@@ -68,15 +69,15 @@ class ControlCore:
         self._lock = threading.RLock()
         self._condition = threading.Condition(self._lock)
         self._stop_event = threading.Event()
-        self._watchdog_thread: threading.Thread | None = None
-        self._control_thread: threading.Thread | None = None
+        self._watchdog_thread: Optional[threading.Thread] = None
+        self._control_thread: Optional[threading.Thread] = None
 
         self.mode = RobotMode.AUTO
         self.mission_status = MissionStatus.IDLE
         self.estop_latched = False
-        self.mission_id: str | None = None
-        self.route_id: str | None = None
-        self.active_step_id: str | None = None
+        self.mission_id: Optional[str] = None
+        self.route_id: Optional[str] = None
+        self.active_step_id: Optional[str] = None
         self.steps_executed = 0
         self.last_teleop_ts = 0.0
         self._abort_requested = False
@@ -86,10 +87,10 @@ class ControlCore:
         self._auto_target = _Velocity()
         self._current_velocity = _Velocity()
         self._last_sent_command = _Velocity()
-        self._last_nonzero_command: _Velocity | None = None
-        self._last_move_return_code: int | None = None
-        self._last_stop_return_code: int | None = None
-        self._last_stand_up_return_code: int | None = None
+        self._last_nonzero_command: Optional[_Velocity] = None
+        self._last_move_return_code: Optional[int] = None
+        self._last_stop_return_code: Optional[int] = None
+        self._last_stand_up_return_code: Optional[int] = None
         self._last_action_message = "idle"
         self._settle_until = 0.0
         self._explicit_stop_requested = False
@@ -143,7 +144,7 @@ class ControlCore:
                 self._condition.notify_all()
         self._emit("mission_running", {"mission_id": self.mission_id, "route_id": self.route_id})
 
-    def set_active_step(self, step_id: str | None) -> None:
+    def set_active_step(self, step_id: Optional[str]) -> None:
         with self._lock:
             self.active_step_id = step_id
 
@@ -233,7 +234,7 @@ class ControlCore:
             self._condition.notify_all()
         return True
 
-    def stand_up(self) -> int | None:
+    def stand_up(self) -> Optional[int]:
         with self._lock:
             if self.estop_latched:
                 raise RuntimeError("Robot cannot stand up while ESTOP is latched.")
@@ -507,7 +508,7 @@ class ControlCore:
             dt = max(0.0, min(0.25, now - last_tick))
             last_tick = now
 
-            action: str | None = None
+            action: Optional[str] = None
             command = _Velocity()
 
             with self._condition:
@@ -656,7 +657,7 @@ class ControlCore:
     def _clamp(self, value: float, maximum: float) -> float:
         return max(-maximum, min(maximum, float(value)))
 
-    def _normalize_return_code(self, result: object) -> int | None:
+    def _normalize_return_code(self, result: object) -> Optional[int]:
         if result is None:
             return None
         try:

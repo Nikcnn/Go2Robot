@@ -4,7 +4,7 @@ import math
 import threading
 import time
 from dataclasses import dataclass
-from typing import Protocol, runtime_checkable
+from typing import Optional, Protocol, runtime_checkable
 
 import cv2
 import numpy as np
@@ -24,18 +24,18 @@ class RobotAdapterProtocol(Protocol):
 
     capabilities: AdapterCapabilities
 
-    def activate(self) -> int | None: ...
+    def activate(self) -> Optional[int]: ...
     def connect(self) -> None: ...
     def disconnect(self) -> None: ...
     def enter_manual_mode(self) -> None: ...
     def emergency_stop(self) -> None: ...
     def exit_manual_mode(self) -> None: ...
-    def send_velocity(self, vx: float, vy: float, vyaw: float) -> int | None: ...
-    def stand_up(self) -> int | None: ...
-    def stop(self) -> int | None: ...
-    def sit_down(self) -> int | None: ...
+    def send_velocity(self, vx: float, vy: float, vyaw: float) -> Optional[int]: ...
+    def stand_up(self) -> Optional[int]: ...
+    def stop(self) -> Optional[int]: ...
+    def sit_down(self) -> Optional[int]: ...
     def get_state(self) -> RobotState: ...
-    def get_camera_frame(self) -> bytes | None: ...
+    def get_camera_frame(self) -> Optional[bytes]: ...
 
 
 # Backward-compat alias — existing code that references RobotAdapter keeps working.
@@ -123,12 +123,12 @@ class MockRobotAdapter:
                 faults=[] if self._connected else ["mock_disconnected"],
             )
 
-    def get_pose(self) -> Pose | None:
+    def get_pose(self) -> Optional[Pose]:
         with self._lock:
             self._integrate_locked()
             return Pose(x=self._pose.x, y=self._pose.y, yaw=self._pose.yaw)
 
-    def capture_frame(self) -> np.ndarray | None:
+    def capture_frame(self) -> Optional[np.ndarray]:
         """Return synthesised frame as ndarray. Used by streaming/mission code."""
         with self._lock:
             self._integrate_locked()
@@ -175,7 +175,7 @@ class MockRobotAdapter:
         )
         return frame
 
-    def get_camera_frame(self) -> bytes | None:
+    def get_camera_frame(self) -> Optional[bytes]:
         """Return latest frame encoded as JPEG bytes."""
         frame = self.capture_frame()
         if frame is None:
@@ -203,7 +203,7 @@ def build_robot_adapter(
     mode: str,
     width: int = 640,
     height: int = 480,
-    interface_name: str | None = None,
+    interface_name: Optional[str] = None,
     camera_enabled: bool = False,
 ) -> RobotAdapterProtocol:
     if mode == "mock":

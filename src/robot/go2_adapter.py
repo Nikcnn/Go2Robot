@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
+from typing import Optional
 
 import cv2
 import numpy as np
@@ -60,7 +61,7 @@ class Go2RobotAdapter:
 
     def __init__(
         self,
-        interface_name: str | None = None,
+        interface_name: Optional[str] = None,
         camera_enabled: bool = False,
     ) -> None:
         if not SDK_AVAILABLE:
@@ -74,22 +75,22 @@ class Go2RobotAdapter:
         self._camera_enabled = camera_enabled
         self.capabilities = AdapterCapabilities(has_camera=camera_enabled, has_pose=True)
 
-        self._sport: SportClient | None = None
+        self._sport: Optional[SportClient] = None
         self._motion_ready = False
         self._motion_lock = threading.RLock()
         self._manual_mode_active = False
         self._state_lock = threading.Lock()
-        self._latest_state: SportModeState_ | None = None
-        self._latest_low_state: LowState_ | None = None
-        self._state_sub: ChannelSubscriber | None = None
-        self._low_state_sub: ChannelSubscriber | None = None
-        self._robot_state_client: RobotStateClient | None = None
+        self._latest_state: Optional[SportModeState_] = None
+        self._latest_low_state: Optional[LowState_] = None
+        self._state_sub: Optional[ChannelSubscriber] = None
+        self._low_state_sub: Optional[ChannelSubscriber] = None
+        self._robot_state_client: Optional[RobotStateClient] = None
         self._service_state_lock = threading.Lock()
         self._service_states: dict[str, int] = {}
         self._next_service_refresh_at = 0.0
 
-        self._video_client: VideoClient | None = None
-        self._cap: cv2.VideoCapture | None = None
+        self._video_client: Optional[VideoClient] = None
+        self._cap: Optional[cv2.VideoCapture] = None
         self._camera_status_lock = threading.Lock()
         self._camera_status = "Camera disabled in config." if not camera_enabled else "Waiting for camera frames."
         self._camera_warned: bool = False
@@ -201,11 +202,11 @@ class Go2RobotAdapter:
                 self._send_move(0.0, 0.0, 0.0)
             self._manual_mode_active = False
 
-    def send_velocity(self, vx: float, vy: float, vyaw: float) -> int | None:
+    def send_velocity(self, vx: float, vy: float, vyaw: float) -> Optional[int]:
         """Send velocity via SportClient.Move (official SDK method)."""
         return self._send_move(vx, vy, vyaw)
 
-    def stop(self) -> int | None:
+    def stop(self) -> Optional[int]:
         """Zero velocity while preserving the current standing posture."""
         if self._sport is None:
             return None
@@ -225,7 +226,7 @@ class Go2RobotAdapter:
             )
             return None
 
-    def sit_down(self) -> int | None:
+    def sit_down(self) -> Optional[int]:
         """Best-effort transition to a seated posture before shutdown."""
         result = self._best_effort_sit_down()
         self._motion_ready = False
@@ -259,11 +260,11 @@ class Go2RobotAdapter:
 
         self._maybe_refresh_service_states()
 
-        battery_percent: float | None = None
-        battery_voltage_v: float | None = None
-        battery_current_a: float | None = None
-        battery_cycles: int | None = None
-        imu_yaw: float | None = None
+        battery_percent: Optional[float] = None
+        battery_voltage_v: Optional[float] = None
+        battery_current_a: Optional[float] = None
+        battery_cycles: Optional[int] = None
+        imu_yaw: Optional[float] = None
         faults: list[str] = []
 
         if state is None:
@@ -298,7 +299,7 @@ class Go2RobotAdapter:
             faults=faults,
         )
 
-    def get_pose(self) -> Pose | None:
+    def get_pose(self) -> Optional[Pose]:
         """Return (x, y, yaw) from the latest SportModeState, or None."""
         with self._state_lock:
             state = self._latest_state
@@ -314,7 +315,7 @@ class Go2RobotAdapter:
     # Camera
     # ------------------------------------------------------------------
 
-    def capture_frame(self) -> np.ndarray | None:
+    def capture_frame(self) -> Optional[np.ndarray]:
         """Return latest camera frame as ndarray, or None."""
         data = self.get_camera_frame()
         if data is None:
@@ -322,7 +323,7 @@ class Go2RobotAdapter:
         buf = np.frombuffer(data, dtype=np.uint8)
         return cv2.imdecode(buf, cv2.IMREAD_COLOR)
 
-    def get_camera_frame(self) -> bytes | None:
+    def get_camera_frame(self) -> Optional[bytes]:
         """Return latest camera frame as JPEG bytes, or None."""
         if not self._camera_enabled:
             self._set_camera_status("Camera disabled in config.")
@@ -415,7 +416,7 @@ class Go2RobotAdapter:
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _send_move(self, vx: float, vy: float, vyaw: float) -> int | None:
+    def _send_move(self, vx: float, vy: float, vyaw: float) -> Optional[int]:
         if self._sport is None:
             return None
         try:
@@ -434,7 +435,7 @@ class Go2RobotAdapter:
             )
             return None
 
-    def _best_effort_sit_down(self) -> int | None:
+    def _best_effort_sit_down(self) -> Optional[int]:
         if self._sport is None:
             return None
         try:

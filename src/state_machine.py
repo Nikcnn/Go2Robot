@@ -3,7 +3,7 @@ from __future__ import annotations
 import threading
 from datetime import datetime, timezone
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from .models import RobotState
@@ -20,7 +20,7 @@ class EffectiveState(str, Enum):
 
 def derive_state(
     connected: bool,
-    robot_state: "RobotState | None",
+    robot_state: Optional["RobotState"],
     estop_latched: bool,
     is_moving: bool = False,
     is_paused: bool = False,
@@ -45,15 +45,15 @@ class RobotStateMachine:
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self._effective: EffectiveState = EffectiveState.DISCONNECTED
-        self._last_transition: datetime | None = None
-        self._last_command_ok: str | None = None
-        self._last_command_rejected: str | None = None
+        self._last_transition: Optional[datetime] = None
+        self._last_command_ok: Optional[str] = None
+        self._last_command_rejected: Optional[str] = None
         self._is_moving: bool = False
 
     def update(
         self,
         connected: bool,
-        robot_state: "RobotState | None",
+        robot_state: Optional["RobotState"],
         estop_latched: bool,
         is_paused: bool = False,
     ) -> tuple[EffectiveState, bool]:
