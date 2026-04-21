@@ -1,207 +1,182 @@
-You are generating a runnable Python MVP for autonomous inspection on Unitree Go2.
+# Architecture
 
-# Hard scope
-Python 3.11+ only. FastAPI, Uvicorn, OpenCV, numpy, PyYAML, pydantic v2, pytest.
-No ROS/ROS2, Nav2, SLAM, RViz, Gazebo, BIM, digital twin, manipulator, fleet
-management, custom navigation stack, auth framework, React/Vue, or build tools
-for the frontend.
+## Overview
 
-This is a safe test-environment MVP. Do not claim production or industrial
-readiness. Do not invent Unitree SDK methods; isolate every uncertain SDK call
-behind one adapter and provide a working mock.
+The repo now contains two layers:
 
-# What the system does
-1. Loads a scripted JSON route.
-2. Executes steps sequentially: `move`, `rotate`, `checkpoint`, `stop`.
-3. At checkpoints: settle, capture camera frame, capture telemetry snapshot,
-   run one image analyzer, log results.
-4. Streams live telemetry + events over WebSocket and live camera over MJPEG
-   to a plain HTML/JS operator console.
-5. Supports manual override (pauses mission, explicit resume required), ESTOP
-   (highest priority, blocks all motion until reset), and a watchdog that stops
-   the robot if manual teleop commands stop arriving.
-6. Writes a per-mission run folder and a final JSON report.
+- Application layer in `src/`: the existing FastAPI backend, operator dashboard, scripted mission executor, storage, reporting, image analysis, and mock/real Go2 adapter support.
+- ROS 2 layer in `ros_ws/`: the new Humble workspace that introduces a bridge process, Nav2 mission execution, and launch/config assets for mapping and navigation.
 
-# Priority and modes
-Modes: AUTO, MANUAL, ESTOP. (SERVICE is a stub state only.)
-Priority enforced in one place: ESTOP > MANUAL > AUTO.
-Manual override never auto-resumes the mission.
+The current repository layout is still centered on `src/` for the operator app. The ROS packages import selected pieces from that existing Python codebase instead of duplicating storage and analysis logic.
 
-# Mission states
-IDLE, STARTING, RUNNING, PAUSED_MANUAL, COMPLETED, ABORTED, FAILED, ESTOPPED.
+## Current Python MVP
 
-# Route schema
+The current application path is:
+
+```text
+dashboard/web client
+  -> FastAPI in src/api.py
+  -> ControlCore in src/control.py
+  -> MissionManager in src/mission.py
+  -> RobotAdapterProtocol in src/robot/robot_adapter.py
+  -> MockRobotAdapter or Go2RobotAdapter
+```
+
+Key properties:
+
+- Motion is scripted and time-based: `send_velocity(vx, vy, vyaw)` + wait + `stop()`.
+- No localization, SLAM, or Nav2 is required for the current MVP.
+- Mock mode runs end-to-end without hardware.
+- All uncertain Unitree SDK integration remains isolated to `src/robot/go2_adapter.py`.
+- Mission semantics are enforced in one place: `ESTOP > MANUAL > AUTO`.
+
+## ROS 2 Target Layer
+
+The new target flow is:
+
+```text
+web / FastAPI
+  -> ROS 2 mission service
+  -> Nav2 FollowWaypoints
+  -> go2_bridge
+  -> unitreesdk2py
+  -> Go2 robot
+```
+
+The ROS workspace lives under `ros_ws/src/` and contains:
+
+- `go2_interfaces`: custom services for mission control and checkpoint capture
+- `go2_bridge`: the only ROS package allowed to touch the Go2 Python adapter and, by extension, `unitreesdk2py`
+- `go2_mission`: mission execution and service bridge to Nav2
+- `go2_nav_bringup`: launch files, Nav2 params, maps, and RViz config
+
+## Process Boundaries
+
+### `go2_bridge`
+
+Responsibilities:
+
+- subscribes to `/cmd_vel`
+- calls `adapter.send_velocity()`
+- publishes `/odom`
+- publishes `/tf` from `odom -> base_link`
+- publishes built-in Go2 lidar `PointCloud2` on `/points` from the same SDK-owning process
+- keeps RealSense as an optional auxiliary ROS sensor source
+- exposes a checkpoint capture service so camera/state capture stays in the same process as the DDS SDK connection
+
+Important constraint:
+
+- `ChannelFactory` is a process singleton, so `go2_bridge` must be the only process that owns the Unitree DDS connection.
+
+### `go2_mission`
+
+Responsibilities:
+
+- loads coordinate missions from `shared_missions/missions/*.json`
+- sends `nav2_msgs/action/FollowWaypoints` goals
+- waits for arrival
+- triggers checkpoint logic after each reached waypoint
+- exposes a mission control service for FastAPI or rosbridge clients
+
+Checkpoint handling deliberately reuses existing application logic:
+
+- image capture and robot state are requested from `go2_bridge`
+- analysis is routed through the existing `src.analysis` module
+- storage/report writing is routed through the existing `src.storage.StorageManager`
+
+### `go2_nav_bringup`
+
+Responsibilities:
+
+- `mapping.launch.py`: starts `go2_bridge`, the lidar conversion chain, optional RealSense bridge, and `slam_toolbox`, but not Nav2
+- `navigation.launch.py`: starts `go2_bridge`, the lidar conversion chain, optional RealSense bridge, map server, AMCL, planner, controller, recoveries, BT navigator, waypoint follower, lifecycle managers, and mission API node
+- sets `RMW_IMPLEMENTATION=rmw_cyclonedds_cpp` in launch
+- carries a Humble-compatible `nav2_params.yaml`
+
+## Mission Formats
+
+Two mission styles now coexist in the repo.
+
+### Scripted route format used by the current Python MVP
+
+Stored under `config/routes/*.json`.
+
+Supported steps:
+
+- `move`
+- `rotate`
+- `checkpoint`
+- `stop`
+
+### Coordinate waypoint format used by the ROS 2 layer
+
+Stored under `shared_missions/missions/*.json`.
+
+Example:
+
+```json
 {
-  "route_id": "demo_route_v1",
-  "steps": [
-    {"id":"s1","type":"move","vx":0.2,"vy":0.0,"vyaw":0.0,"duration_sec":1.5},
-    {"id":"s2","type":"checkpoint","waypoint_id":"panel_A","settle_time_sec":1.0,
-     "analyzer":"frame_diff","reference_image":"config/reference_images/panel_A_ref.jpg"},
-    {"id":"s3","type":"rotate","vyaw":0.5,"duration_sec":1.0},
-    {"id":"s4","type":"stop"}
+  "mission_id": "inspect_line_a",
+  "map_id": "site_a_floor_1",
+  "waypoints": [
+    {"id": "panel_A", "x": 4.12, "y": 1.83, "yaw": 1.57, "task": "inspect_panel"},
+    {"id": "switch_B", "x": 7.40, "y": 3.11, "yaw": 0.0, "task": "thermal_check"}
   ]
 }
-Velocities are in robot body frame. Validate with pydantic.
+```
 
-# File layout (exact — do not add files)
-project/
-  requirements.txt
-  README.md
-  config/
-    app_config.yaml
-    routes/demo_route.json
-    reference_images/panel_A_ref.jpg   # placeholder; README explains
-  src/
-    main.py              # entrypoint: parse args, build app, run uvicorn
-    config.py            # YAML -> pydantic settings
-    models.py            # enums, route/step models, telemetry snapshot, report
-    robot_adapter.py     # ONLY place SDK-specific code lives; Mock + Real stubs
-    telemetry.py         # polls adapter, keeps latest snapshot, JSONL writer
-    control.py           # ModeManager + CommandArbiter + Watchdog + ESTOP in one module
-    mission.py           # route loader, state machine, step executor, checkpoint handler
-    analysis.py          # frame_diff analyzer + simple_presence stub, normalized result
-    storage.py           # run folder layout, event log, image writer, final report
-    streaming.py         # WS telemetry, WS events, MJPEG camera
-    api.py               # FastAPI app, all routes, WS handlers
-    web/
-      index.html
-      app.js
-      styles.css
-  runs/                  # created at runtime
-  tests/
-    test_route_loader.py
-    test_control_priority.py
-    test_report_builder.py
-    test_api_smoke.py
+## Shared Data and Reports
 
-# RobotAdapter interface (the ONLY SDK surface)
-class RobotAdapter(Protocol):
-    def connect(self) -> None
-    def disconnect(self) -> None
-    def send_velocity(self, vx: float, vy: float, vyaw: float) -> None
-    def stop(self) -> None
-    def get_state(self) -> RobotState       # battery, imu, faults; all Optional
-    def get_pose(self) -> Optional[Pose]    # body-frame odometry if available
-    def capture_frame(self) -> Optional[np.ndarray]  # BGR
-    # LiDAR deferred: method exists, returns None in MVP
+The existing run/report path remains the system of record:
 
-Provide two implementations:
-- MockRobotAdapter: synthesizes telemetry, generates a moving-pattern camera
-  frame at configured FPS, integrates simple velocity into a fake pose.
-- Go2RobotAdapter: imports unitree_sdk2_python lazily inside connect(); every
-  uncertain call wrapped with a precise `# TODO(sdk):` comment and a safe
-  fallback that raises NotImplementedError with a clear message. Do NOT guess
-  method names — document exactly what the integrator must fill in.
-
-Selection via config: `robot.mode: mock | real`.
-
-# Control module contract
-One class `ControlCore` owns: current mode, mission state, last teleop
-timestamp, ESTOP latch. Every motion command (auto or manual) passes through
-`ControlCore.submit(cmd, source)`. Rules:
-- ESTOP latched → drop all, call adapter.stop() once.
-- Mode == MANUAL → drop AUTO commands.
-- Mode == AUTO → drop MANUAL commands unless source triggers mode switch
-  (explicit "take manual" endpoint).
-Watchdog: if MANUAL and no teleop cmd received for `watchdog_timeout_ms`,
-adapter.stop() and log event. Mission is NOT auto-resumed.
-
-# Mission executor
-Sequential step loop running in a background thread (not the event loop).
-- `move`/`rotate`: submit velocity at ~10 Hz for `duration_sec`, then stop.
-- `checkpoint`: stop, sleep `settle_time_sec`, capture frame + telemetry,
-  run configured analyzer, write image + analysis JSON + event.
-- `stop`: ensure velocity zero.
-Between every step check: pause/abort/ESTOP flags. On manual override, drop
-into PAUSED_MANUAL and wait for explicit resume or abort.
-
-# Analyzer contract
-def analyze(frame: np.ndarray, params: dict) -> dict
-Return:
-{"analyzer": "...", "status": "ok|error|not_configured",
- "result": "...", "score": float|None, "details": {...}}
-Implement `frame_diff` (mean abs diff vs reference, threshold from config).
-`simple_presence` returns `{"result":"not_configured"}`.
-
-# Storage
+```text
 runs/mission_<id>/
   mission_meta.json
   event_log.jsonl
   telemetry.jsonl
-  images/<waypoint_id>_<ts>.jpg
-  analysis/<waypoint_id>.json
+  images/
+  analysis/
   final_report.json
+```
 
-Final report fields: mission_id, route_id, mission_status, started_at,
-finished_at, steps_executed, checkpoints[], analysis_results[],
-mode_transitions[], errors[], warnings[].
+The ROS mission layer writes into that same structure by importing the existing storage module instead of introducing a second reporting format.
 
-# API (FastAPI)
-GET  /api/status
-GET  /api/mission/current
-POST /api/mission/start           body: {route_id}
-POST /api/mission/pause
-POST /api/mission/resume
-POST /api/mission/abort
-POST /api/mode/manual/take
-POST /api/mode/manual/release
-POST /api/mode/estop
-POST /api/mode/reset-estop
-POST /api/teleop/cmd              body: {vx,vy,vyaw,ts}  (refreshes watchdog)
-WS   /ws/telemetry                ~5 Hz push
-WS   /ws/events                   push on change
-GET  /stream/camera               MJPEG (multipart/x-mixed-replace)
-GET  /                            serves web/index.html
+## Sensors
 
-All request/response bodies are pydantic models.
+Current state:
 
-# Operator console (single HTML file + app.js + styles.css)
-Panels: mode + mission state + active route + step, battery, faults, MJPEG
-camera preview, event log (last 50). Buttons: Start, Pause, Resume, Abort,
-Take Manual, Release Manual, ESTOP, Reset ESTOP. Keyboard teleop active only
-while Manual is held: W/S forward-back, A/D yaw, Space stop, X estop. Send
-/api/teleop/cmd at 10 Hz while keys are down; stop sending on keyup.
+- Robot camera: supported through the existing adapter path
+- RealSense D435i: supported in the Python MVP and exposed in ROS 2 through `go2_bridge/camera_bridge.py`
+- Built-in Go2 lidar: ROS path now targets `base_bridge -> /points -> lidar_bridge -> /scan`
 
-No frontend build step. No frameworks. Vanilla fetch + WebSocket.
+Practical implication:
 
-# Concurrency model
-- FastAPI/uvicorn owns the asyncio loop.
-- One background thread: telemetry polling.
-- One background thread: camera capture → latest-frame slot (single-slot,
-  overwrite, lock-protected).
-- One background thread: mission executor.
-- WebSocket pushers are async tasks reading latest slots.
-- Every thread has a stop event and joins on shutdown.
+- mapping, AMCL, and Nav2 now have an in-repo sensor chain, but the built-in lidar SDK import/topic assumptions still need runtime validation on Ubuntu + the robot
 
-# Config (app_config.yaml)
-robot: {mode: mock, max_vx: 0.5, max_vyaw: 1.0}
-telemetry: {hz: 5}
-camera: {fps: 10, width: 640, height: 480, jpeg_quality: 70}
-control: {watchdog_timeout_ms: 500}
-analysis: {frame_diff_threshold: 0.25}
-server: {host: 0.0.0.0, port: 8000}
-storage: {runs_dir: runs}
-logging: {level: INFO}
+## Platform Assumptions
 
-# Tests (pytest, fast, no hardware)
-- test_route_loader: valid + invalid route JSON.
-- test_control_priority: ESTOP blocks all; MANUAL blocks AUTO; resume needs
-  explicit call; watchdog stops on stale teleop.
-- test_report_builder: required fields present after a mock mission.
-- test_api_smoke: TestClient hits /api/status, /api/mission/start with mock
-  adapter, verifies state transitions via /api/mission/current.
+The ROS layer is written for:
 
-# README
-One file. Sections: what this is / what it is not; install; run mock
-(`python -m src.main --config config/app_config.yaml`); open dashboard;
-start mission; manual override flow; ESTOP flow; where real SDK goes
-(`robot_adapter.py::Go2RobotAdapter` TODOs); run folder layout; tests.
+- Ubuntu 22.04
+- ROS 2 Humble
+- Python 3.10
+- apt-installed Nav2 and slam_toolbox
+- `rmw_cyclonedds_cpp`
 
-# Output rules
-- Generate every listed file with full contents.
-- No placeholder "..." bodies. Either implement or raise NotImplementedError
-  with a clear TODO comment.
-- No speculative SDK calls outside `robot_adapter.py`.
-- Keep total code small and readable; favor directness over abstraction.
-In this MVP, “autonomous route” means scripted execution in a known safe test area using predefined motion steps and checkpoints. This MVP does not implement full waypoint localization, obstacle avoidance, SLAM, or production-grade navigation. Do not describe it as general autonomous navigation.
-If real Go2 SDK integration is incomplete, the whole system must still run end-to-end in mock mode, including dashboard, mission execution, telemetry, camera stream, storage, and tests.
+The existing application layer remains Python-first and continues to run in mock mode without ROS.
+
+## What Is Verified vs Unverified
+
+Verified in this repository:
+
+- Python MVP in `src/`
+- generated ROS package structure
+- Python syntax for the new ROS nodes
+- JSON/YAML syntax for the shared mission and Nav2 parameters
+
+Not verified from this Windows workspace:
+
+- runtime behavior on Ubuntu 22.04 + ROS 2 Humble
+- Nav2 bringup with a real map and `/scan`
+- live built-in lidar DDS integration inside the ROS bridge
+- RealSense runtime inside ROS 2
