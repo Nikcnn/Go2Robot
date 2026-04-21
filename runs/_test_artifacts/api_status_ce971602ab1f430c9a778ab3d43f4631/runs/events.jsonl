@@ -1,1 +1,0 @@
-{"ts": "2026-04-17T08:48:52.098008+00:00", "level": "info", "category": "connection", "event": "server_started", "message": "server_started", "details": {"adapter_mode": "mock", "adapter_ready": true}}

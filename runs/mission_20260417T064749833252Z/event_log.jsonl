@@ -1,6 +1,0 @@
-{"ts": "2026-04-17T06:47:49.833881+00:00", "event": "mission_started", "details": {"mission_id": "20260417T064749833252Z", "route_id": "short_walk_20cm"}}
-{"ts": "2026-04-17T06:47:49.834289+00:00", "event": "mission_running", "details": {"mission_id": "20260417T064749833252Z", "route_id": "short_walk_20cm"}}
-{"ts": "2026-04-17T06:47:49.834566+00:00", "event": "step_started", "details": {"step_id": "move_forward_20cm", "step_type": "move"}}
-{"ts": "2026-04-17T06:47:51.846457+00:00", "event": "step_completed", "details": {"step_id": "move_forward_20cm", "step_type": "move"}}
-{"ts": "2026-04-17T06:47:51.846801+00:00", "event": "step_started", "details": {"step_id": "checkpoint_front", "step_type": "checkpoint"}}
-{"ts": "2026-04-17T06:47:51.895541+00:00", "event": "mission_paused", "details": {"reason": "operator_pause", "mission_id": "20260417T064749833252Z"}}
