@@ -1,255 +1,588 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Go2 Inspection MVP</title>
-    <link rel="stylesheet" href="/web/styles.css" />
+    <title>Go2 Operator</title>
+
+    <!-- Fonts: Inter (UI) + JetBrains Mono (technical values) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap"
+    />
+
+    <!-- Icons: Lucide (via CDN, UMD build) -->
+    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.js"></script>
+
+    <link rel="stylesheet" href="/web/styles.css?v=2" />
   </head>
+
   <body>
-    <main class="shell">
-      <header class="hero">
-        <div>
-          <p class="eyebrow">Safe Test Environment</p>
-          <h1>Go2 Inspection Console</h1>
-          <p class="subtitle">Mock-first route execution, telemetry, events, and camera in one plain web UI.</p>
+    <!-- Toast notifications -->
+    <div id="toastStack" class="toast-stack" aria-live="polite"></div>
+
+    <!-- ── Top bar ──────────────────────────────────────── -->
+    <header class="topbar">
+
+      <!-- Left: logo + name + status sentence -->
+      <div class="topbar-brand">
+        <!-- Inline SVG robot logo — geometric, minimal -->
+        <svg class="brand-logo" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="10" y="8"  width="16" height="12" rx="3" fill="currentColor"/>
+          <circle cx="14.5" cy="14" r="1.8" fill="#071212"/>
+          <circle cx="21.5" cy="14" r="1.8" fill="#071212"/>
+          <rect   x="8"  y="20" width="20" height="11" rx="3" fill="currentColor" opacity="0.85"/>
+          <rect   x="9"  y="31" width="5"  height="5"  rx="1.5" fill="currentColor" opacity="0.65"/>
+          <rect   x="22" y="31" width="5"  height="5"  rx="1.5" fill="currentColor" opacity="0.65"/>
+        </svg>
+
+        <span class="brand-name">Go2 Operator</span>
+        <div class="brand-sep" aria-hidden="true"></div>
+        <p id="statusSentence" aria-live="polite">Checking system…</p>
+      </div>
+
+      <!-- Center: connection + mode badges -->
+      <div class="topbar-badges">
+        <span class="status-pill" id="connectionBadge">Checking…</span>
+        <span class="status-pill" id="modeBadge">Mode: checking</span>
+      </div>
+
+      <!-- Right: theme toggle + reset + E-Stop -->
+      <div class="topbar-actions">
+        <button class="theme-toggle" id="themeToggleBtn" title="Toggle light / dark mode" aria-label="Toggle light/dark mode">
+          <i data-lucide="moon" style="width:16px;height:16px;"></i>
+        </button>
+        <button class="secondary-action" id="resetEstopBtn">Reset E-Stop</button>
+        <button class="danger-action"    id="estopBtn">&#9632; Emergency Stop</button>
+      </div>
+
+    </header>
+
+    <!-- ── Tab navigation ──────────────────────────────── -->
+    <nav class="workflow-tabs" aria-label="Operator workflow">
+      <button class="tab-button active" data-tab="setup">
+        <i data-lucide="activity"></i> Setup
+      </button>
+      <button class="tab-button" data-tab="mapping">
+        <i data-lucide="map"></i> Mapping
+      </button>
+      <button class="tab-button" data-tab="waypoints">
+        <i data-lucide="map-pin"></i> Waypoints
+      </button>
+      <button class="tab-button" data-tab="navigation">
+        <i data-lucide="navigation-2"></i> Navigation
+      </button>
+      <button class="tab-button" data-tab="control">
+        <i data-lucide="gamepad-2"></i> Control
+      </button>
+      <button class="tab-button" data-tab="sensors">
+        <i data-lucide="cpu"></i> Sensors
+      </button>
+      <button class="tab-button" data-tab="d1">
+        <i data-lucide="wrench"></i> D1 Arm
+      </button>
+      <button class="tab-button" data-tab="logs">
+        <i data-lucide="scroll-text"></i> Logs
+      </button>
+    </nav>
+
+    <!-- ── Main workspace ──────────────────────────────── -->
+    <main class="workspace">
+
+      <!-- ─── Tab 1: Setup ─────────────────────────────── -->
+      <section id="setup" class="tab-panel active">
+        <div class="section-heading">
+          <div>
+            <h2>Setup</h2>
+            <p>Check the robot, sensors, and navigation services before operating.</p>
+          </div>
+          <button class="primary-action" id="checkSystemBtn">
+            <i data-lucide="refresh-cw" style="width:15px;height:15px;"></i>
+            Check system
+          </button>
         </div>
-        <div class="badge-row">
-          <span class="badge" id="robotMode">Mode: AUTO</span>
-          <span class="badge" id="missionStatus">Mission: IDLE</span>
-          <span class="badge state-badge" id="effectiveBadge">State: —</span>
+
+        <div class="status-grid">
+          <article class="status-card" id="robotStatusCard">
+            <span class="card-kicker">Robot</span>
+            <h3 id="robotSummary">Checking</h3>
+            <p id="robotDetail">Waiting for status.</p>
+            <button id="activateRobotBtn" class="primary-action">Activate robot</button>
+          </article>
+
+          <article class="status-card" id="rosStatusCard">
+            <span class="card-kicker">Mapping &amp; navigation stack</span>
+            <h3 id="rosSummary">Checking</h3>
+            <p id="rosDetail">Waiting for stack status.</p>
+          </article>
+
+          <article class="status-card" id="sensorStatusCard">
+            <span class="card-kicker">Sensors</span>
+            <h3 id="sensorSummary">Checking</h3>
+            <p id="sensorDetail">Waiting for sensor status.</p>
+          </article>
         </div>
-      </header>
 
-      <section class="grid">
-
-        <!-- ── State Panel ── -->
-        <article class="card state-card">
-          <h2>Robot State</h2>
-          <dl class="stats">
-            <div>
-              <dt>Connection</dt>
-              <dd id="stConnection">—</dd>
-            </div>
-            <div>
-              <dt>Effective State</dt>
-              <dd><span id="stEffective" class="state-indicator">—</span></dd>
-            </div>
-            <div>
-              <dt>Requested State</dt>
-              <dd id="stRequested">—</dd>
-            </div>
-            <div>
-              <dt>Motion Mode</dt>
-              <dd id="stMotionMode">—</dd>
-            </div>
-            <div>
-              <dt>Sport Error (raw → decoded)</dt>
-              <dd id="stSportError">—</dd>
-            </div>
-            <div>
-              <dt>BMS (raw → decoded)</dt>
-              <dd id="stBms">—</dd>
-            </div>
-            <div>
-              <dt>Battery</dt>
-              <dd id="stBattery">—</dd>
-            </div>
-            <div>
-              <dt>Pose</dt>
-              <dd id="stPose">—</dd>
-            </div>
-            <div>
-              <dt>Last OK Command</dt>
-              <dd id="stLastOk">—</dd>
-            </div>
-            <div>
-              <dt>Last Rejected</dt>
-              <dd id="stLastRejected">—</dd>
-            </div>
-            <div class="wide">
-              <dt>Last Transition</dt>
-              <dd id="stLastTs">—</dd>
-            </div>
-          </dl>
-        </article>
-
-        <!-- ── Control Panel ── -->
-        <article class="card control-action-card">
-          <h2>Robot Control</h2>
-          <div class="button-grid">
-            <button id="actStandBtn"
-              data-action="stand_up"
-              data-allow="idle,standing,ready,connecting">Stand / Ready</button>
-            <button id="actStopBtn"
-              data-action="stop_motion"
-              data-allow="ready,moving,standing,paused">Stop Motion</button>
-            <button id="actPauseBtn"
-              data-action="pause"
-              data-allow="ready,moving">Pause Mission</button>
-            <button id="actResumeBtn"
-              data-action="resume"
-              data-allow="paused">Resume Mission</button>
-            <button id="actManualBtn"
-              data-action="manual_mode"
-              data-allow="ready,standing,moving">Manual Mode</button>
-            <button id="actAutoBtn"
-              data-action="auto_mode"
-              data-allow="ready,standing,moving,paused">Auto Mode</button>
-            <button id="actDampBtn" class="warn-btn"
-              data-action="damping_on"
-              data-allow="ready,moving,standing">Damping On</button>
-            <button id="actResetBtn"
-              data-action="reset_fault"
-              data-allow="error,damping,standing_lock,estop">Reset / Recover</button>
-          </div>
-          <p class="hint">Buttons are disabled when the action is not valid for the current effective state.</p>
-        </article>
-
-        <!-- ── Mission Control (existing) ── -->
-        <article class="card control-card">
-          <h2>Mission Control</h2>
-          <label class="field">
-            <span>Route</span>
-            <input id="routeId" value="demo_route" />
-          </label>
-          <div class="button-grid">
-            <button id="startBtn">Start</button>
-            <button id="pauseBtn">Pause</button>
-            <button id="resumeBtn">Resume</button>
-            <button id="abortBtn">Abort</button>
-            <button id="takeManualBtn">Take Manual</button>
-            <button id="releaseManualBtn">Release Manual</button>
-            <button id="activateRobotBtn">Activate Robot</button>
-            <button class="danger" id="estopBtn">ESTOP</button>
-            <button id="resetEstopBtn">Reset ESTOP</button>
-          </div>
-          <p class="hint">Keyboard teleop while in manual: W/S forward-back, A/D left-right, Q/E yaw, Space stop, X ESTOP.</p>
-        </article>
-
-        <!-- ── Teleop Speed Control ── -->
-        <article class="card speed-card">
-          <h2>Teleop Speed</h2>
-          <div class="speed-cols">
-
-            <div class="speed-col">
-              <span class="speed-label">vx</span>
-              <span class="speed-unit">m/s</span>
-              <button class="speed-btn" id="vxInc">▲</button>
-              <input type="number" class="speed-input" id="vxInput"
-                min="0.22" max="0.80" step="0.02" value="0.40" />
-              <button class="speed-btn" id="vxDec">▼</button>
-            </div>
-
-            <div class="speed-col">
-              <span class="speed-label">vy</span>
-              <span class="speed-unit">m/s</span>
-              <button class="speed-btn" id="vyInc">▲</button>
-              <input type="number" class="speed-input" id="vyInput"
-                min="0.22" max="0.60" step="0.02" value="0.30" />
-              <button class="speed-btn" id="vyDec">▼</button>
-            </div>
-
-            <div class="speed-col">
-              <span class="speed-label">vyaw</span>
-              <span class="speed-unit">rad/s</span>
-              <button class="speed-btn" id="vyawInc">▲</button>
-              <input type="number" class="speed-input" id="vyawInput"
-                min="0.45" max="1.50" step="0.05" value="0.60" />
-              <button class="speed-btn" id="vyawDec">▼</button>
-            </div>
-
-          </div>
-        </article>
-
-        <!-- ── Live Status (existing) ── -->
-        <article class="card status-card">
-          <h2>Live Status</h2>
-          <dl class="stats">
-            <div>
-              <dt>Mission ID</dt>
-              <dd id="missionId">-</dd>
-            </div>
-            <div>
-              <dt>Route</dt>
-              <dd id="routeValue">-</dd>
-            </div>
-            <div>
-              <dt>Active Step</dt>
-              <dd id="activeStep">-</dd>
-            </div>
-            <div>
-              <dt>Battery</dt>
-              <dd id="battery">-</dd>
-            </div>
-            <div>
-              <dt>Battery Power</dt>
-              <dd id="batteryPower">-</dd>
-            </div>
-            <div>
-              <dt>Battery Cycles</dt>
-              <dd id="batteryCycles">-</dd>
-            </div>
-            <div>
-              <dt>Pose</dt>
-              <dd id="pose">-</dd>
-            </div>
-            <div class="wide">
-              <dt>Faults / Warnings</dt>
-              <dd id="faults">-</dd>
-            </div>
-          </dl>
-        </article>
-
-        <!-- ── Camera Stream (existing) ── -->
-        <article class="card camera-card">
-          <div class="section-title">
-            <h2>Camera Stream</h2>
-            <span class="inline-note" id="cameraStatus">Waiting for camera frames.</span>
-          </div>
-          <img id="cameraFeed" src="/stream/camera" alt="Robot camera feed" />
-        </article>
-
-        <!-- ── Event Log (existing) ── -->
-        <article class="card event-card">
-          <div class="section-title">
-            <h2>Event Log</h2>
-            <span class="inline-note">Last 50</span>
-          </div>
-          <ul id="eventLog" class="event-log"></ul>
-        </article>
-
-        <!-- ── History Panel (new, full-width) ── -->
-        <article class="card history-card wide-card">
-          <div class="section-title">
-            <h2>Structured Log History</h2>
-            <div class="history-controls">
-              <select id="historyLevel">
-                <option value="">All levels</option>
-                <option value="info">info</option>
-                <option value="warn">warn</option>
-                <option value="error">error</option>
-              </select>
-              <select id="historyCategory">
-                <option value="">All categories</option>
-                <option value="state_transition">state_transition</option>
-                <option value="action_accepted">action_accepted</option>
-                <option value="action_rejected">action_rejected</option>
-                <option value="movement_blocked">movement_blocked</option>
-                <option value="fault">fault</option>
-                <option value="mission">mission</option>
-                <option value="connection">connection</option>
-              </select>
-              <button id="historyRefreshBtn" class="small-btn">Refresh</button>
-              <button id="historyCopyBtn" class="small-btn">Copy All</button>
-            </div>
-          </div>
-          <ul id="historyLog" class="history-log"></ul>
-        </article>
-
+        <details class="technical-panel">
+          <summary>Technical details</summary>
+          <pre id="technicalDetails">Waiting for system check…</pre>
+        </details>
       </section>
+
+      <!-- ─── Tab 2: Mapping ───────────────────────────── -->
+      <section id="mapping" class="tab-panel">
+        <div class="section-heading">
+          <div>
+            <h2>Mapping</h2>
+            <p>Walk the robot through the area, then press Save map.</p>
+          </div>
+          <span class="status-pill" id="mappingBadge">Mapping: stopped</span>
+        </div>
+
+        <div class="two-column">
+          <article class="workflow-card">
+            <h3>Mapping session</h3>
+            <label class="field">
+              <span>Session name</span>
+              <input id="mappingSessionName" value="site_mapping" />
+            </label>
+            <label class="field">
+              <span>Map name to save</span>
+              <input id="mapSaveName" value="site_a_floor_1" />
+            </label>
+            <div class="action-row">
+              <button class="primary-action" id="startMappingBtn">
+                <i data-lucide="play" style="width:14px;height:14px;"></i> Start mapping
+              </button>
+              <button class="secondary-action" id="pauseMappingBtn" disabled>
+                <i data-lucide="pause" style="width:14px;height:14px;"></i> Pause
+              </button>
+              <button class="secondary-action" id="stopMappingBtn">
+                <i data-lucide="square" style="width:14px;height:14px;"></i> Stop mapping
+              </button>
+              <button class="primary-action" id="saveMapBtn">
+                <i data-lucide="save" style="width:14px;height:14px;"></i> Save map
+              </button>
+            </div>
+            <p class="result-text" id="mapSaveResult"></p>
+          </article>
+
+          <article class="workflow-card preview-card">
+            <h3>Map preview</h3>
+            <div class="map-preview" id="mapPreview">
+              <strong>Map preview unavailable</strong>
+              <!-- STATUS: UI structure ready, backend stub only — needs live /scan topic -->
+              <span>Start mapping to build a map. Live rendering requires a ROS 2 Foxy environment on Ubuntu 20.04.</span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ─── Tab 3: Waypoints ─────────────────────────── -->
+      <section id="waypoints" class="tab-panel">
+        <div class="section-heading">
+          <div>
+            <h2>Waypoints</h2>
+            <p>Build a route by adding waypoints from the robot's current position.</p>
+          </div>
+          <div class="header-controls">
+            <select id="missionSelect" aria-label="Load saved route"></select>
+            <button class="secondary-action" id="loadMissionBtn">Load</button>
+            <button class="secondary-action" id="newMissionBtn">
+              <i data-lucide="plus" style="width:14px;height:14px;"></i> New route
+            </button>
+          </div>
+        </div>
+
+        <div class="waypoint-layout">
+          <article class="workflow-card">
+            <h3>Route details</h3>
+            <label class="field">
+              <span>Route name</span>
+              <input id="missionIdInput" placeholder="my_route" />
+            </label>
+            <label class="field">
+              <span>Map</span>
+              <select id="missionMapSelect" aria-label="Select map for this route"></select>
+            </label>
+            <div class="action-row">
+              <button class="primary-action" id="saveMissionBtn">
+                <i data-lucide="save" style="width:14px;height:14px;"></i> Save route
+              </button>
+              <button class="danger-secondary" id="deleteMissionBtn">
+                <i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete route
+              </button>
+            </div>
+          </article>
+
+          <article class="workflow-card">
+            <h3>Add waypoint</h3>
+            <label class="field">
+              <span>Waypoint name</span>
+              <input id="newWaypointName" placeholder="door_1" />
+            </label>
+            <label class="field">
+              <span>Task label</span>
+              <input id="newWaypointTask" value="inspect" />
+            </label>
+            <button class="primary-action full-width" id="addWaypointPoseBtn">
+              <i data-lucide="crosshair" style="width:14px;height:14px;"></i>
+              Add from current robot pose
+            </button>
+            <p class="muted-text" id="poseHint">Pose will be read from the telemetry feed.</p>
+          </article>
+        </div>
+
+        <div class="route-actions">
+          <button class="primary-action large-action" id="runRouteBtn">
+            <i data-lucide="play-circle" style="width:17px;height:17px;"></i> Run route
+          </button>
+          <button class="danger-secondary large-action" id="stopRouteBtn">
+            <i data-lucide="stop-circle" style="width:17px;height:17px;"></i> Stop route
+          </button>
+        </div>
+
+        <div id="waypointList" class="waypoint-list"></div>
+
+        <details class="technical-panel">
+          <summary>Advanced — JSON editor</summary>
+          <textarea id="missionJsonEditor" spellcheck="false" aria-label="Raw mission JSON"></textarea>
+          <div class="action-row" style="padding:12px 16px 14px;">
+            <button class="secondary-action" id="applyMissionJsonBtn">Apply JSON</button>
+            <button class="secondary-action" id="copyMissionJsonBtn">
+              <i data-lucide="clipboard" style="width:13px;height:13px;"></i> Copy JSON
+            </button>
+          </div>
+        </details>
+      </section>
+
+      <!-- ─── Tab 4: Navigation ────────────────────────── -->
+      <section id="navigation" class="tab-panel">
+        <div class="section-heading">
+          <div>
+            <h2>Navigation</h2>
+            <p>Load a saved map, start navigation, then run a saved route.</p>
+          </div>
+          <span class="status-pill" id="navigationBadge">Navigation: stopped</span>
+        </div>
+
+        <div class="two-column">
+          <article class="workflow-card">
+            <h3>Map &amp; navigation</h3>
+            <label class="field">
+              <span>Map</span>
+              <select id="navigationMapSelect" aria-label="Select map for navigation"></select>
+            </label>
+            <div class="action-row">
+              <button class="primary-action" id="startNavigationBtn">
+                <i data-lucide="play" style="width:14px;height:14px;"></i> Start navigation
+              </button>
+              <button class="secondary-action" id="stopNavigationBtn">
+                <i data-lucide="square" style="width:14px;height:14px;"></i> Stop navigation
+              </button>
+            </div>
+
+            <h3 style="margin-top:20px;">Run route</h3>
+            <label class="field" style="margin-top:10px;">
+              <span>Route</span>
+              <select id="navigationMissionSelect" aria-label="Select route to run"></select>
+            </label>
+            <div class="action-row">
+              <button class="primary-action" id="startSelectedMissionBtn">
+                <i data-lucide="play-circle" style="width:14px;height:14px;"></i> Start selected route
+              </button>
+              <button class="danger-secondary" id="cancelSelectedMissionBtn">
+                <i data-lucide="x-circle" style="width:14px;height:14px;"></i> Cancel route
+              </button>
+            </div>
+          </article>
+
+          <article class="workflow-card">
+            <h3>Route progress</h3>
+            <dl class="progress-list">
+              <div>
+                <dt>Active waypoint</dt>
+                <dd id="activeWaypoint">None</dd>
+              </div>
+              <div>
+                <dt>Completed</dt>
+                <dd id="completedWaypoints">0 / 0</dd>
+              </div>
+              <div>
+                <dt>Current task</dt>
+                <dd id="currentTask">None</dd>
+              </div>
+            </dl>
+          </article>
+        </div>
+      </section>
+
+      <!-- ─── Tab: Control ────────────────────────────── -->
+      <section id="control" class="tab-panel">
+        <div class="section-heading">
+          <div>
+            <h2>Manual Control</h2>
+            <p>Take manual control to drive the robot. Release when done to allow missions.</p>
+          </div>
+          <span class="status-pill" id="controlModeBadge">Mode: checking</span>
+        </div>
+
+        <div class="two-column">
+          <article class="workflow-card">
+            <h3>Mode &amp; posture</h3>
+            <div class="action-row" style="margin-bottom:14px;">
+              <button class="primary-action" id="takeManualBtn">Take manual</button>
+              <button class="secondary-action" id="releaseManualBtn">Release manual</button>
+            </div>
+            <div class="action-row">
+              <button class="secondary-action" id="ctrlStandUpBtn">Stand up</button>
+              <button class="secondary-action" id="ctrlSitBtn">Sit</button>
+              <button class="danger-secondary" id="ctrlStopBtn">Stop motion</button>
+            </div>
+
+            <div class="field" style="margin-top:18px;">
+              <span>Speed — <span id="speedLabel">0.40 m/s</span></span>
+              <input id="speedSlider" type="range" min="0.1" max="1.0" step="0.05" value="0.4"
+                     style="min-height:auto;padding:6px 0;" />
+            </div>
+            <p class="muted-text" style="margin-top:10px;">
+              Keyboard (this tab only): <strong>W A S D</strong> move &nbsp;·&nbsp;
+              <strong>Q E</strong> rotate &nbsp;·&nbsp; <strong>Space</strong> stop.
+            </p>
+          </article>
+
+          <article class="workflow-card">
+            <h3>Teleop</h3>
+            <div class="dpad">
+              <div class="dpad-row">
+                <button class="dpad-btn" id="dpadRotCCW" title="Rotate CCW (Q)">↺</button>
+                <button class="dpad-btn" id="dpadFwd"    title="Forward (W)">▲</button>
+                <button class="dpad-btn" id="dpadRotCW"  title="Rotate CW (E)">↻</button>
+              </div>
+              <div class="dpad-row">
+                <button class="dpad-btn" id="dpadLeft"   title="Strafe left (A)">◀</button>
+                <button class="dpad-btn dpad-stop" id="dpadStop" title="Stop (Space)">■</button>
+                <button class="dpad-btn" id="dpadRight"  title="Strafe right (D)">▶</button>
+              </div>
+              <div class="dpad-row">
+                <div class="dpad-spacer"></div>
+                <button class="dpad-btn" id="dpadBack"   title="Backward (S)">▼</button>
+                <div class="dpad-spacer"></div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ─── Tab 5: Sensors ───────────────────────────── -->
+      <section id="sensors" class="tab-panel">
+        <div class="section-heading">
+          <div>
+            <h2>Sensors</h2>
+            <p>Live camera feeds and lidar status. Select the active camera view below.</p>
+          </div>
+          <div class="segmented-control">
+            <button class="active" id="useBuiltInCameraBtn">Built-in</button>
+            <button id="useRealsenseCameraBtn">D435i</button>
+          </div>
+        </div>
+
+        <div class="sensor-grid">
+          <article class="sensor-card active-sensor" id="builtInCameraCard">
+            <div class="card-title-row">
+              <h3>Built-in camera</h3>
+              <span class="status-dot" id="builtInCameraStatus">Checking</span>
+            </div>
+            <!-- STATUS: wired and tested in mock mode -->
+            <img id="builtInCameraFeed" src="/stream/camera" alt="Built-in robot camera stream" />
+          </article>
+
+          <article class="sensor-card" id="realsenseCard">
+            <div class="card-title-row">
+              <h3>Intel RealSense D435i</h3>
+              <span class="status-dot" id="realsenseStatus">Checking</span>
+            </div>
+            <!-- STATUS: API contract ready, runtime requires Ubuntu 20.04 + pyrealsense2 -->
+            <img id="realsenseFeed" alt="Intel RealSense D435i color stream" />
+            <p class="muted-text" id="realsenseNote">Waiting for RealSense status.</p>
+          </article>
+
+          <article class="sensor-card lidar-card">
+            <div class="card-title-row">
+              <h3>Built-in lidar</h3>
+              <span class="status-dot" id="lidarStatus">Checking</span>
+            </div>
+            <canvas id="lidarCanvas" class="lidar-canvas" width="300" height="300"></canvas>
+            <p class="muted-text" id="lidarViewerNote">Loading scan data…</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- ─── Tab 6: Logs ──────────────────────────────── -->
+      <section id="d1" class="tab-panel">
+        <div class="section-heading">
+          <div>
+            <h2>D1 Arm</h2>
+            <p>Bridge-backed D1 monitoring with explicit motion interlocks. Refresh is read-only and never sends arm commands.</p>
+          </div>
+          <div class="header-controls">
+            <span class="status-pill is-warn" id="d1PhaseBadge">Dry-run only</span>
+            <span class="status-pill" id="d1BridgeBadge">Bridge: checking</span>
+          </div>
+        </div>
+
+        <div class="two-column">
+          <article class="workflow-card" id="d1BridgeCard">
+            <h3>Bridge status</h3>
+            <div class="d1-status-grid">
+              <div class="d1-stat">
+                <span>Bridge</span>
+                <strong id="d1BridgeState">Checking</strong>
+              </div>
+              <div class="d1-stat">
+                <span>D1 link</span>
+                <strong id="d1ConnectedState">Checking</strong>
+              </div>
+              <div class="d1-stat">
+                <span>ESTOP</span>
+                <strong id="d1EstopState">Checking</strong>
+              </div>
+              <div class="d1-stat">
+                <span>Motion enabled</span>
+                <strong id="d1MotionEnabled">Disabled</strong>
+              </div>
+              <div class="d1-stat">
+                <span>Command path</span>
+                <strong id="d1ExecutionPath">Dry-run</strong>
+              </div>
+              <div class="d1-stat">
+                <span>Mode</span>
+                <strong id="d1Mode">readonly</strong>
+              </div>
+              <div class="d1-stat">
+                <span>Controller lock</span>
+                <strong id="d1ControllerLock">Waiting</strong>
+              </div>
+              <div class="d1-stat">
+                <span>Error code</span>
+                <strong id="d1ErrorCode">0</strong>
+              </div>
+              <div class="d1-stat d1-stat-wide">
+                <span>Last update</span>
+                <strong id="d1LastUpdate">Waiting</strong>
+              </div>
+              <div class="d1-stat d1-stat-wide">
+                <span>Last error</span>
+                <strong id="d1LastError">None</strong>
+              </div>
+            </div>
+          </article>
+
+          <article class="workflow-card">
+            <h3>Safe actions</h3>
+            <div class="d1-banner">
+              <strong>Real D1 motion stays blocked until explicitly armed.</strong>
+              <span>The bridge must be online, the D1 link must be healthy, ESTOP must be clear, and motion must be enabled deliberately. Opening this page never arms motion.</span>
+            </div>
+            <div class="action-row">
+              <button class="secondary-action" id="refreshD1Btn">
+                <i data-lucide="refresh-cw" style="width:14px;height:14px;"></i> Refresh
+              </button>
+              <button class="primary-action" id="d1EnableMotionBtn">
+                <i data-lucide="shield-check" style="width:14px;height:14px;"></i> Enable motion
+              </button>
+              <button class="secondary-action" id="d1DisableMotionBtn">
+                <i data-lucide="shield-off" style="width:14px;height:14px;"></i> Disable motion
+              </button>
+              <button class="secondary-action" id="d1ZeroArmBtn">
+                <i data-lucide="rotate-ccw" style="width:14px;height:14px;"></i> Zero arm
+              </button>
+              <button class="danger-secondary" id="d1StopBtn">
+                <i data-lucide="shield-alert" style="width:14px;height:14px;"></i> Stop / Halt
+              </button>
+              <button class="primary-action" id="d1DryRunBtn">
+                <i data-lucide="clipboard-check" style="width:14px;height:14px;"></i> Send Dry-Run
+              </button>
+            </div>
+            <p class="result-text" id="d1ActionResult">No D1 action requested yet.</p>
+
+            <details class="technical-panel" style="margin-top:16px;">
+              <summary>Example dry-run payload</summary>
+              <pre id="d1DryRunPayload">{}</pre>
+            </details>
+          </article>
+        </div>
+
+        <article class="workflow-card d1-joints-card">
+          <div class="card-title-row">
+            <h3>Joint telemetry</h3>
+            <span class="status-dot" id="d1JointValidity">Checking</span>
+          </div>
+          <div class="table-scroll">
+            <table class="d1-joint-table">
+              <thead>
+                <tr>
+                  <th>Joint</th>
+                  <th>q</th>
+                  <th>dq</th>
+                  <th>tau</th>
+                </tr>
+              </thead>
+              <tbody id="d1JointRows"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <details class="technical-panel">
+          <summary>D1 raw status</summary>
+          <pre id="d1RawStatus">Waiting for D1 bridge data…</pre>
+        </details>
+      </section>
+
+      <!-- ─── Tab 7: Logs ──────────────────────────────── -->
+      <section id="logs" class="tab-panel">
+        <div class="section-heading">
+          <div>
+            <h2>Logs</h2>
+            <p>Operator-readable events first. Raw technical records stay below.</p>
+          </div>
+          <button class="secondary-action" id="copyLogsBtn">
+            <i data-lucide="clipboard" style="width:14px;height:14px;"></i> Copy logs
+          </button>
+        </div>
+
+        <div class="log-controls">
+          <div class="chip-row" id="logCategoryChips">
+            <button class="chip active" data-category="">All</button>
+            <button class="chip" data-category="connection">Connection</button>
+            <button class="chip" data-category="mission">Mission</button>
+            <button class="chip" data-category="fault">Faults</button>
+            <button class="chip" data-category="movement_blocked">Blocked</button>
+          </div>
+          <select id="logLevel" aria-label="Filter by log level" style="width:auto;min-width:140px;">
+            <option value="">All levels</option>
+            <option value="info">Info</option>
+            <option value="warn">Warning</option>
+            <option value="error">Error</option>
+          </select>
+        </div>
+
+        <div id="operatorLogSummaries" class="operator-log"></div>
+
+        <details class="technical-panel">
+          <summary>Raw technical log view</summary>
+          <pre id="rawLogView">No logs loaded.</pre>
+        </details>
+      </section>
+
     </main>
 
-    <script src="/web/app.js"></script>
+    <script src="/web/app.js?v=2"></script>
+    <script>
+      /* Initialise Lucide icons after DOM is ready */
+      if (typeof lucide !== "undefined") lucide.createIcons();
+    </script>
   </body>
 </html>

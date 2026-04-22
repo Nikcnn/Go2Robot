@@ -1,0 +1,53 @@
+# Python bytecode and test caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.hypothesis/
+
+# Python packaging and virtual environments
+build/
+dist/
+*.egg-info/
+pip-wheel-metadata/
+.venv/
+venv/
+env/
+ENV/
+
+# Local application runtime artifacts
+runs/
+*.log
+*.tmp
+
+# Local environment and machine-specific config
+.env
+.env.*
+!.env.example
+config/*.local.yaml
+config/*.local.yml
+
+# ROS 2 / colcon workspace outputs
+ros_ws/build/
+ros_ws/install/
+ros_ws/log/
+rosbag2_*/
+*.bag
+*.bag.active
+*.db3
+*.mcap
+
+# Editors and OS metadata
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

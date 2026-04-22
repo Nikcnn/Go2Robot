@@ -1,16 +1,19 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, Union, Dict, Tuple, List, Any
 
+import cv2
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
+from .api_d1 import register_d1_routes
 from .config import AppConfig, load_app_config
 from .control import ControlCore
 from .event_log import PersistentEventLog
@@ -21,6 +24,12 @@ from .models import (
     MotionCommand, MotionStateResponse, RobotMode, RouteModel,
     StatusResponse, TeleopCommandRequest,
 )
+from .operator_services import (
+    CoordinateMissionStore,
+    RosProcessService,
+    build_operator_overview,
+    build_sensor_summary,
+)
 from .robot.robot_adapter import build_robot_adapter
 from .sensors import RealsenseCameraService
 from .state_machine import (
@@ -28,6 +37,7 @@ from .state_machine import (
 )
 from .storage import StorageManager
 from .streaming import CameraStream, EventBus
+from .services import D1Service
 from .telemetry import TelemetryService
 
 
@@ -46,6 +56,9 @@ class AppRuntime:
     mission: MissionManager
     state_machine: RobotStateMachine
     event_log: PersistentEventLog
+    ros: RosProcessService
+    mission_store: CoordinateMissionStore
+    d1: D1Service
     adapter_connected: bool = field(default=False)
 
 
@@ -186,6 +199,13 @@ def create_app(config: Optional[AppConfig] = None, config_path: Union[str, Path]
         event_callback=emit_event,
         realsense_camera=realsense,
     )
+    ros = RosProcessService(
+        project_root=project_root,
+        robot_mode=loaded_config.robot.mode,
+        interface_name=loaded_config.robot.interface_name,
+    )
+    mission_store = CoordinateMissionStore(project_root)
+    d1 = D1Service(allow_motion_commands=loaded_config.d1.enable_motion)
     runtime = AppRuntime(
         config=loaded_config,
         config_path=config_file,
@@ -200,6 +220,9 @@ def create_app(config: Optional[AppConfig] = None, config_path: Union[str, Path]
         mission=mission,
         state_machine=state_machine,
         event_log=event_log,
+        ros=ros,
+        mission_store=mission_store,
+        d1=d1,
     )
     # Late-bind the connected_fn so TelemetryService reads runtime.adapter_connected
     runtime.telemetry._get_connected = lambda: runtime.adapter_connected  # type: ignore[attr-defined]
@@ -238,6 +261,7 @@ def create_app(config: Optional[AppConfig] = None, config_path: Union[str, Path]
         try:
             yield
         finally:
+            runtime.ros.shutdown()
             runtime.mission.shutdown()
             runtime.realsense.stop()
             runtime.camera.stop()
@@ -248,6 +272,7 @@ def create_app(config: Optional[AppConfig] = None, config_path: Union[str, Path]
     app = FastAPI(title="Go2 Inspection MVP", lifespan=lifespan)
     app.state.runtime = runtime
     app.mount("/web", StaticFiles(directory=web_dir), name="web")
+    register_d1_routes(app, runtime)
 
     @app.get("/", response_class=HTMLResponse)
     def index() -> FileResponse:
@@ -536,6 +561,201 @@ def create_app(config: Optional[AppConfig] = None, config_path: Union[str, Path]
     ) -> Dict:
         records = runtime.event_log.query(level=level, category=category, limit=limit)
         return {"records": records, "count": len(records)}
+
+    def record_operator_event(event: str, result: Dict[str, Any]) -> Dict[str, Any]:
+        emit_event(event, {"ok": result.get("ok"), "message": result.get("message"), "details": result.get("details", {})})
+        runtime.event_log.append(
+            level="info" if result.get("ok") else "warn",  # type: ignore[arg-type]
+            category="connection",  # type: ignore[arg-type]
+            event=event,
+            message=str(result.get("message") or event),
+            details=result,
+        )
+        return result
+
+    def log_summary(record: Dict[str, Any]) -> str:
+        event = str(record.get("event") or "")
+        message = str(record.get("message") or event)
+        summaries = {
+            "server_started": "System is ready.",
+            "adapter_startup_failed": "Robot connection failed. Motion is blocked.",
+            "mission_started": "A route was started.",
+            "mission_completed": "The route finished.",
+            "mission_aborted": "The route was stopped.",
+            "estop_latched": "Emergency stop was pressed.",
+            "estop_reset": "Emergency stop was reset.",
+            "ros_mapping_start": "Mapping launch was requested.",
+            "ros_mapping_stop": "Mapping stop was requested.",
+            "ros_map_save": "Map save was requested.",
+            "ros_navigation_start": "Navigation launch was requested.",
+            "ros_navigation_stop": "Navigation stop was requested.",
+            "ros_mission_start": "Waypoint route start was requested.",
+            "ros_mission_cancel": "Waypoint route stop was requested.",
+        }
+        return summaries.get(event, message)
+
+    @app.get("/api/operator/overview")
+    def operator_overview() -> Dict[str, Any]:
+        return build_operator_overview(runtime)
+
+    @app.get("/api/operator/sensors")
+    def operator_sensors() -> Dict[str, Any]:
+        return {"sensors": build_sensor_summary(runtime)}
+
+    @app.get("/api/operator/logs")
+    def operator_logs(
+        level: Optional[str] = Query(default=None),
+        category: Optional[str] = Query(default=None),
+        limit: int = Query(default=100, ge=1, le=500),
+    ) -> Dict[str, Any]:
+        records = runtime.event_log.query(level=level, category=category, limit=limit)
+        return {
+            "records": records,
+            "summaries": [
+                {
+                    "ts": record.get("ts"),
+                    "level": record.get("level"),
+                    "summary": log_summary(record),
+                    "event": record.get("event"),
+                }
+                for record in records[:20]
+            ],
+        }
+
+    @app.post("/api/operator/check-system")
+    def operator_check_system() -> Dict[str, Any]:
+        overview = build_operator_overview(runtime)
+        overview["checked_at"] = time.time()
+        overview["ok"] = bool(overview["connection"]["online"])
+        return overview
+
+    @app.get("/api/ros/health")
+    def ros_health() -> Dict[str, Any]:
+        return runtime.ros.status()
+
+    @app.post("/api/ros/mapping/start")
+    def ros_mapping_start(payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        return record_operator_event("ros_mapping_start", runtime.ros.start_mapping(payload))
+
+    @app.post("/api/ros/mapping/stop")
+    def ros_mapping_stop() -> Dict[str, Any]:
+        return record_operator_event("ros_mapping_stop", runtime.ros.stop_mapping())
+
+    @app.post("/api/ros/mapping/save")
+    def ros_mapping_save(payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        payload = payload or {}
+        map_name = str(payload.get("map_name") or payload.get("name") or payload.get("map_id") or "").strip()
+        if not map_name:
+            raise HTTPException(status_code=400, detail="Map name is required.")
+        return record_operator_event("ros_map_save", runtime.ros.save_map(map_name))
+
+    @app.post("/api/ros/navigation/start")
+    def ros_navigation_start(payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        return record_operator_event("ros_navigation_start", runtime.ros.start_navigation(payload))
+
+    @app.post("/api/ros/navigation/stop")
+    def ros_navigation_stop() -> Dict[str, Any]:
+        return record_operator_event("ros_navigation_stop", runtime.ros.stop_navigation())
+
+    @app.get("/api/maps")
+    def list_maps() -> Dict[str, Any]:
+        return {"maps": runtime.mission_store.list_maps()}
+
+    @app.post("/api/maps/save")
+    def save_map(payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        return ros_mapping_save(payload)
+
+    @app.get("/api/missions")
+    def list_waypoint_missions() -> Dict[str, Any]:
+        return {"missions": runtime.mission_store.list_missions()}
+
+    @app.get("/api/missions/{mission_id}")
+    def get_waypoint_mission(mission_id: str) -> Dict[str, Any]:
+        try:
+            return runtime.mission_store.load(mission_id)
+        except FileNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.post("/api/missions")
+    def create_waypoint_mission(payload: Dict[str, Any]) -> Dict[str, Any]:
+        try:
+            return runtime.mission_store.save(payload)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.put("/api/missions/{mission_id}")
+    def update_waypoint_mission(mission_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        try:
+            return runtime.mission_store.save(payload, mission_id=mission_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.delete("/api/missions/{mission_id}")
+    def delete_waypoint_mission(mission_id: str) -> Dict[str, Any]:
+        try:
+            runtime.mission_store.delete(mission_id)
+        except FileNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return {"ok": True, "message": f"Mission '{mission_id}' deleted."}
+
+    @app.post("/api/missions/{mission_id}/start")
+    def start_waypoint_mission(mission_id: str) -> Dict[str, Any]:
+        try:
+            mission = runtime.mission_store.load(mission_id)
+        except FileNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        result = runtime.ros.start_mission(Path(mission["path"]))
+        return record_operator_event("ros_mission_start", result)
+
+    @app.post("/api/missions/{mission_id}/cancel")
+    def cancel_waypoint_mission(mission_id: str) -> Dict[str, Any]:
+        _ = mission_id  # Endpoint stays mission-scoped for the operator UI; ROS service cancel is global.
+        return record_operator_event("ros_mission_cancel", runtime.ros.cancel_mission())
+
+    @app.post("/api/waypoints/from-current-pose")
+    def waypoint_from_current_pose(payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        payload = payload or {}
+        pose = runtime.telemetry.get_latest().pose
+        try:
+            result = runtime.mission_store.waypoint_from_pose(
+                pose=pose,
+                mission_id=payload.get("mission_id"),
+                map_id=payload.get("map_id"),
+                waypoint_id=payload.get("waypoint_id"),
+                task=payload.get("task"),
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return {"ok": True, "message": "Waypoint saved from current pose.", "result": result}
+
+    @app.get("/api/robot/lidar/scan")
+    def lidar_scan_endpoint() -> Dict:
+        scan_fn = getattr(runtime.adapter, "get_lidar_scan", None)
+        if scan_fn is None:
+            return {"points": [], "available": False}
+        return {"points": scan_fn(), "available": True}
+
+    @app.get("/stream/realsense/color")
+    def realsense_color_stream() -> StreamingResponse:
+        status = runtime.realsense.get_status()
+        if not status.get("enabled"):
+            raise HTTPException(status_code=503, detail="RealSense color stream is disabled.")
+
+        def generator():
+            boundary = b"--frame"
+            while True:
+                frame = runtime.realsense.get_latest_color_frame()
+                if frame is not None:
+                    ok, encoded = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 75])
+                    if ok:
+                        yield boundary + b"\r\nContent-Type: image/jpeg\r\n\r\n" + encoded.tobytes() + b"\r\n"
+                time.sleep(1.0 / max(1, runtime.config.realsense.fps))
+
+        return StreamingResponse(generator(), media_type="multipart/x-mixed-replace; boundary=frame")
 
     return app
 

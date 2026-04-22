@@ -1,0 +1,24 @@
+[Unit]
+Description=Unitree D1 local bridge (DDS feedback, motion disabled by default)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=unitree
+Group=unitree
+WorkingDirectory=/opt/Go2Robot/Go2_MVP
+Environment=D1_BRIDGE_SOCKET=/run/d1_bridge.sock
+Environment=D1_ENABLE_MOTION=false
+PermissionsStartOnly=true
+ExecStartPre=/bin/rm -f /run/d1_bridge.sock
+ExecStart=/opt/Go2Robot/Go2_MVP/build/d1_bridge/d1_bridge --socket /run/d1_bridge.sock
+ExecStopPost=/bin/rm -f /run/d1_bridge.sock
+Restart=on-failure
+RestartSec=2
+AmbientCapabilities=CAP_DAC_OVERRIDE
+CapabilityBoundingSet=CAP_DAC_OVERRIDE
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

@@ -19,6 +19,8 @@ realsense:
   startup_required: false
 control:
   watchdog_timeout_ms: 1500
+d1:
+  enable_motion: false
 analysis:
   frame_diff_threshold: 0.25
 server:

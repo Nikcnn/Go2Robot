@@ -2,177 +2,86 @@
 
 This project targets Ubuntu 20.04, Python 3.8, and ROS 2 Foxy.
 
-There are two build paths:
+There are three primary build paths:
+- **Python App**: Core FastAPI app and dashboard.
+- **D1 Bridge**: C++17 daemon for the Unitree D1 arm.
+- **ROS 2 Layer**: ROS 2 Foxy workspace for navigation.
 
-- Python app only: install `requirements.txt` and run `src.main`.
-- ROS 2 layer: build `ros_ws/` with Foxy and source the install workspace.
-
-## Python 3.8 App Setup
-
-Use this path for the FastAPI app, browser dashboard, mock mode, scripted routes, direct Go2 adapter mode, storage, and reports.
+## 1. Python 3.8 App Setup
 
 ```bash
-cd /path/to/Go2Robot
 python3.8 -m venv .venv
 source .venv/bin/activate
-python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
 Run mock mode:
-
 ```bash
 python3 -m src.main --config config/app_config.yaml
 ```
 
-Run real Go2 mode after installing `unitree_sdk2py` manually:
+## 2. D1 Bridge Build (C++17)
+
+The D1 bridge requires CMake 3.10+ and a C++17 compiler.
 
 ```bash
-python3 -m src.main --config config/app_config.go2.enp0s20f0u1c2.yaml
+cmake -S cpp/d1_bridge -B build/d1_bridge -DCMAKE_BUILD_TYPE=Release
+cmake --build build/d1_bridge -j
 ```
 
-Optional hardware packages:
+### D1 SDK Dependencies (Optional)
+To enable the official Unitree SDK2 DDS backend, provide the SDK root:
+```bash
+cmake -S cpp/d1_bridge -B build/d1_bridge \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DD1_SDK_MSG_ROOT=/path/to/d1_sdk
+cmake --build build/d1_bridge -j
+```
 
-- `unitree_sdk2py`: required only for real Go2 mode.
-- `pyrealsense2`: required only when RealSense support is enabled.
+### Running the Bridge
+Mock mode (no hardware required):
+```bash
+./build/d1_bridge/d1_bridge --mock --socket /tmp/d1_bridge.sock
+```
 
-## ROS 2 Foxy System Packages
+Official backend (requires Ubuntu 20.04 and D1 arm):
+```bash
+./build/d1_bridge/d1_bridge --interface eth0 --socket /run/d1_bridge.sock
+```
 
-Install ROS 2 Foxy on Ubuntu 20.04 first. Then install the packages used by the workspace:
+### Environment Variables
+- `D1_BRIDGE_SOCKET`: Path to the D1 bridge UNIX socket (default: `/run/d1_bridge.sock`).
 
+## 3. ROS 2 Foxy System Packages
+
+Install ROS 2 Foxy on Ubuntu 20.04:
 ```bash
 sudo apt update
 sudo apt install \
   python3-colcon-common-extensions \
-  python3-rosdep \
-  ros-foxy-ament-cmake \
-  ros-foxy-ament-python \
   ros-foxy-navigation2 \
   ros-foxy-nav2-bringup \
-  ros-foxy-nav2-msgs \
-  ros-foxy-slam-toolbox \
-  ros-foxy-tf2-ros \
-  ros-foxy-cv-bridge \
-  ros-foxy-image-transport \
-  ros-foxy-rmw-cyclonedds-cpp \
-  ros-foxy-rviz2
+  ros-foxy-rmw-cyclonedds-cpp
 ```
 
-Initialize rosdep if the machine has not done it before:
+## 4. ROS 2 Workspace Build
 
 ```bash
-sudo rosdep init
-rosdep update
-```
-
-## ROS 2 Workspace Build
-
-```bash
-cd /path/to/Go2Robot/ros_ws
+cd ros_ws
 source /opt/ros/foxy/setup.bash
-rosdep install --from-paths src --ignore-src -r -y
 colcon build --symlink-install
-```
-
-Source the workspace in every new ROS shell:
-
-```bash
-source /opt/ros/foxy/setup.bash
-source /path/to/Go2Robot/ros_ws/install/setup.bash
-export GO2_OPERATOR_APP_ROOT=/path/to/Go2Robot
+source install/setup.bash
+export GO2_OPERATOR_APP_ROOT=$(pwd)/..
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 ```
 
-`GO2_OPERATOR_APP_ROOT` lets ROS nodes import the existing Python app storage and adapter modules.
+## 5. Process Boundary Rules
 
-## ROS Packages
-
-```text
-go2_interfaces    Custom CheckpointCapture and MissionControl services
-go2_bridge        /cmd_vel to adapter bridge, /odom, /tf, checkpoint capture, lidar, camera
-go2_mission       Mission service and Nav2 FollowWaypoints client
-go2_nav_bringup   Mapping and navigation launch files, Nav2 params, RViz config
-```
-
-## Mapping Launch
-
-Mapping starts:
-
-- `go2_bridge/base_bridge`
-- static `base_link -> utlidar_lidar` transform
-- `go2_bridge/lidar_bridge`
-- optional `go2_bridge/camera_bridge`
-- `slam_toolbox`
-- optional RViz
-
-```bash
-ros2 launch go2_nav_bringup mapping.launch.py \
-  robot_mode:=go2 \
-  interface_name:=enp0s20f0u1c2 \
-  use_lidar:=true \
-  lidar_mode:=auto \
-  use_realsense:=false \
-  require_realsense:=false
-```
-
-Useful launch arguments:
-
-```text
-robot_mode                  mock or go2
-interface_name              Unitree SDK network interface
-camera_enabled              enables robot camera in the adapter
-use_lidar                   starts /points and /scan bridge path
-lidar_mode                  auto, sdk, or mock
-lidar_sdk_topic             Unitree DDS lidar topic, default utlidar/cloud
-lidar_sdk_msg_module        override SDK PointCloud2 message module
-lidar_sdk_msg_type          override SDK PointCloud2 message type
-use_realsense               start optional RealSense ROS bridge
-require_realsense           fail if RealSense is unavailable
-realsense_publish_pointcloud publish /camera/depth/points
-use_rviz                    start RViz
-```
-
-## Navigation Launch
-
-Navigation starts the bridge, `/scan`, AMCL, map server, Nav2 servers, waypoint follower, mission API node, and optional RViz.
-
-```bash
-ros2 launch go2_nav_bringup navigation.launch.py \
-  robot_mode:=go2 \
-  interface_name:=enp0s20f0u1c2 \
-  map:=/path/to/Go2Robot/shared_missions/maps/site_a_floor_1.yaml \
-  use_lidar:=true \
-  lidar_mode:=auto
-```
-
-Send a mission through the ROS service after the launch is ready:
-
-```bash
-ros2 service call /go2_mission/command go2_interfaces/srv/MissionControl \
-  "{command: start, mission_path: /path/to/Go2Robot/shared_missions/missions/inspect_line_a.json, mission_json: ''}"
-```
-
-Check status:
-
-```bash
-ros2 service call /go2_mission/command go2_interfaces/srv/MissionControl \
-  "{command: status, mission_path: '', mission_json: ''}"
-```
-
-Cancel:
-
-```bash
-ros2 service call /go2_mission/command go2_interfaces/srv/MissionControl \
-  "{command: cancel, mission_path: '', mission_json: ''}"
-```
-
-## Process Boundary Rules
-
-- Do not run the Python app in `go2` mode and `go2_bridge` in `go2` mode at the same time.
-- Only one process may own the Unitree SDK DDS `ChannelFactory`.
-- Use `rmw_cyclonedds_cpp` for SDK-facing ROS processes.
-- Keep mapping and Nav2 claims tied to a verified live `/scan`.
+- **DDS Ownership**: Only one process should own the Unitree SDK DDS `ChannelFactory`.
+- **Hybrid Runs**: Run the Python app in `mock` mode if `go2_bridge` owns the Go2 SDK.
+- **D1 Bridge**: The C++ bridge owns the D1 SDK feedback; the Python app acts as a client.
 
 ## Validation
 
-From this Windows workspace, only static file edits and hardware-free tests can be run. Full ROS 2 Foxy build, Nav2 launch, Unitree SDK connection, lidar stream, and RealSense runtime behavior must be validated on Ubuntu 20.04.
+- Hardware-free testing: `pytest` and `d1_bridge --mock`.
+- Runtime validation: Requires Ubuntu 20.04 for ROS 2 and real D1/Go2 hardware.

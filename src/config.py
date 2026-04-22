@@ -63,12 +63,17 @@ class LoggingConfig(StrictModel):
     level: str = "INFO"
 
 
+class D1Config(StrictModel):
+    enable_motion: bool = False
+
+
 class AppConfig(StrictModel):
     robot: RobotConfig = Field(default_factory=RobotConfig)
     telemetry: TelemetryConfig = Field(default_factory=TelemetryConfig)
     camera: CameraConfig = Field(default_factory=CameraConfig)
     realsense: RealsenseConfig = Field(default_factory=RealsenseConfig)
     control: ControlConfig = Field(default_factory=ControlConfig)
+    d1: D1Config = Field(default_factory=D1Config)
     analysis: AnalysisConfig = Field(default_factory=AnalysisConfig)
     server: ServerConfig = Field(default_factory=ServerConfig)
     storage: StorageConfig = Field(default_factory=StorageConfig)

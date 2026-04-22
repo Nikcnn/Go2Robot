@@ -1,20 +1,23 @@
-# Go2 Inspection System
+# Go2 & D1 Inspection System
 
-This repository contains a safe test-environment inspection stack for a Unitree Go2 robot.
-It has two supported execution paths:
+This repository contains a safe test-environment inspection and manipulation stack for the Unitree Go2 robot and the Unitree D1 arm.
+It supports multiple execution paths:
 
-- `src/`: standalone Python 3.8 application with FastAPI, a vanilla browser dashboard, scripted JSON routes, telemetry, camera streaming, storage, reporting, mock mode, and direct Go2 adapter support.
+- `src/`: standalone Python 3.8 application with FastAPI, a vanilla browser dashboard, scripted JSON routes, telemetry, camera streaming, storage, reporting, mock mode, direct Go2 adapter support, and D1 bridge integration.
+- `cpp/d1_bridge/`: C++17 local bridge daemon for the Unitree D1 arm, providing a UNIX socket JSON protocol and the only supported DDS owner for the D1 path.
 - `ros_ws/`: ROS 2 Foxy workspace for Ubuntu 20.04 with `go2_bridge`, `go2_mission`, `go2_interfaces`, and Nav2 bringup for coordinate waypoint missions.
 
-The Python app can run without ROS. The ROS layer requires Ubuntu 20.04, ROS 2 Foxy, Python 3.8, and `rmw_cyclonedds_cpp`.
+The Python app can run without ROS. The ROS layer and the real D1 bridge require Ubuntu 20.04.
 
 ## Repository Layout
 
 ```text
 src/                  Python application layer and dashboard
 src/robot/            Mock and Go2 robot adapter boundary
-src/sensors/          Optional RealSense support for the Python app
+src/integrations/     D1 Bridge client and external integrations
+src/services/         D1 Arm and other background services
 src/web/              Static dashboard HTML, CSS, and JavaScript
+cpp/d1_bridge/        C++17 local bridge daemon for D1 Arm
 config/routes/        Scripted Python-app route JSON files
 ros_ws/               ROS 2 Foxy workspace
 ros_ws/src/go2_bridge ROS bridge for cmd_vel, odom/tf, checkpoint capture, lidar, camera
@@ -28,124 +31,116 @@ tests/                Hardware-free pytest coverage
 
 ## Platform
 
-- Ubuntu 20.04 for real deployment and ROS 2 work.
-- Python 3.8 for both the Python app and ROS Python nodes.
+- Ubuntu 20.04 for real deployment, ROS 2 work, and the D1 bridge.
+- Python 3.8 for the main app and ROS Python nodes.
+- C++17 for the D1 bridge daemon.
 - ROS 2 Foxy for `ros_ws/`.
 - `RMW_IMPLEMENTATION=rmw_cyclonedds_cpp` when touching the Unitree SDK.
 
-Windows is used here as a workspace, but ROS 2 Foxy and Nav2 runtime behavior must be validated on Ubuntu 20.04.
+Windows is used for development, but ROS 2 and real hardware integration must be validated on Ubuntu 20.04.
 
-## Python App Quick Start
+## Quick Start (Mock Mode)
 
-Create a Python 3.8 environment and install the app dependencies:
+1. **Python App**: Create a Python 3.8 environment and install dependencies:
+   ```bash
+   python3.8 -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements.txt
+   python3 -m src.main --config config/app_config.yaml
+   ```
 
-```bash
-python3.8 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-```
+2. **D1 Bridge (Optional)**: Build the C++ bridge in mock mode:
+   ```bash
+   cmake -S cpp/d1_bridge -B build/d1_bridge -DCMAKE_BUILD_TYPE=Release
+   cmake --build build/d1_bridge -j
+   ./build/d1_bridge/d1_bridge --mock --socket /tmp/d1_bridge.sock
+   ```
 
-Run the mock app:
+3. **Open Dashboard**:
+   ```text
+   http://127.0.0.1:8000/
+   ```
 
-```bash
-python3 -m src.main --config config/app_config.yaml
-```
+The default config uses `robot.mode: mock`, and the dashboard includes a **D1 Arm** tab for monitoring the arm bridge.
 
-Open:
+## Operator Web UI
+
+The dashboard provides tabs for:
+
+- **Setup**: robot, ROS, and sensor readiness.
+- **D1 Arm**: bridge status, joint monitoring (`q`/`dq`/`tau`), explicit motion gating, halt, zero-arm, and real-time joint control.
+- **Mapping**: ROS-based mapping control and map saving.
+- **Waypoints**: mission CRUD and coordinate-based route management.
+- **Navigation**: Nav2 stack control and waypoint route execution.
+- **Sensors**: camera streams (Built-in / RealSense) and lidar status.
+- **Logs**: operator-first event summaries and technical logs.
+
+## D1 Arm Integration
+
+The D1 path is fully integrated:
 
 ```text
-http://127.0.0.1:8000/
+Python app -> D1Client -> UNIX socket -> cpp/d1_bridge -> Unitree SDK2 DDS
 ```
 
-The default config uses `robot.mode: mock`, so it does not need a real robot, Unitree SDK, ROS, or RealSense camera.
+The bridge supports:
 
-## Real Go2 Python App
+- `--mock` mode for hardware-free synthetic feedback and command loops
+- real DDS feedback from `current_servo_angle` and `rt/arm_Feedback` / `arm_Feedback`
+- a typed DDS command path to `rt/arm_Command` for full joint control
 
-Install `unitree_sdk2py` manually in the same Python 3.8 environment. It is intentionally not pinned in `requirements.txt` because installation depends on the Unitree SDK package source and target machine.
+Real arm motion is safety-gated:
 
-Then run a Go2 config with the correct network interface:
+- `config/app_config.yaml` can set `d1.enable_motion: true`
+- the bridge requires `--enable-motion` or `D1_ENABLE_MOTION=true`
+- an operator must still explicitly enable motion through the bridge API/UI before commands are published
+- `stop` / `halt` remains available at all times
+- full support for `set_joint_angle`, `set_multi_joint_angle`, and `zero_arm`
 
+For more details, see [D1_BRIDGE_SETUP.md](D1_BRIDGE_SETUP.md).
+
+## Real Go2 Integration
+
+Install `unitree_sdk2py` manually and run:
 ```bash
 python3 -m src.main --config config/app_config.go2.enp0s20f0u1c2.yaml
 ```
 
-Do not run this at the same time as `go2_bridge` in `robot_mode:=go2`. The Unitree DDS `ChannelFactory` is treated as a process singleton.
-
-## ROS 2 Foxy Quick Start
-
-On Ubuntu 20.04:
-
-```bash
-cd /path/to/Go2Robot/ros_ws
-source /opt/ros/foxy/setup.bash
-rosdep install --from-paths src --ignore-src -r -y
-colcon build --symlink-install
-source install/setup.bash
-export GO2_OPERATOR_APP_ROOT=/path/to/Go2Robot
-export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
-```
-
-Mapping bringup:
-
-```bash
-ros2 launch go2_nav_bringup mapping.launch.py \
-  robot_mode:=go2 \
-  interface_name:=enp0s20f0u1c2 \
-  use_lidar:=true \
-  lidar_mode:=auto
-```
-
-Navigation bringup:
-
-```bash
-ros2 launch go2_nav_bringup navigation.launch.py \
-  robot_mode:=go2 \
-  interface_name:=enp0s20f0u1c2 \
-  map:=/path/to/Go2Robot/shared_missions/maps/site_a_floor_1.yaml \
-  use_lidar:=true \
-  lidar_mode:=auto
-```
-
-The ROS lidar code is present: `base_bridge` publishes `/points`, and `lidar_bridge` converts PointCloud2 to `/scan`. The exact Unitree built-in lidar SDK message import path still needs target validation on Ubuntu 20.04 with the robot connected. Mapping, AMCL, and Nav2 require a live and correct `/scan`.
-
-## Missions
-
-The Python app uses scripted route files in `config/routes/`. Supported route steps include:
-
-- `move`
-- `move_velocity`
-- `rotate`
-- `checkpoint`
-- `stop`
-- `stand_up`
-- `wait`
-- `settle`
-
-The ROS layer uses coordinate waypoint missions in `shared_missions/missions/`, for example `inspect_line_a.json`. Those missions are sent to Nav2 through `FollowWaypoints`.
+Do not run the Python app and `go2_bridge` as real SDK owners simultaneously.
 
 ## Safety Rules
 
-- Control priority is always `ESTOP > MANUAL > AUTO`.
-- Manual takeover pauses an active mission.
-- Manual release does not auto-resume a mission.
-- Keep one active motion controller at a time.
-- Keep all uncertain Unitree SDK work inside the adapter or `go2_bridge`.
-- Mock mode must stay end-to-end runnable without hardware.
+- Control priority: `ESTOP > MANUAL > AUTO`.
+- Manual takeover pauses active missions.
+- Manual release does not auto-resume.
+- D1 Arm real motion is disabled by default and requires explicit bridge + app interlocks before the bridge will publish commands.
+- Mock mode must remain end-to-end runnable without hardware.
 
 ## Tests
 
 Run hardware-free Python tests:
-
 ```bash
 pytest
 ```
 
-ROS package build and runtime checks must be run on Ubuntu 20.04 with ROS 2 Foxy.
+## What Is Wired vs What Needs Ubuntu 20.04
+
+| Feature | Status | Requires |
+|---|---|---|
+| Mock mode end-to-end | Wired and tested | Python 3.8 |
+| Operator dashboard | Wired and tested | Browser |
+| D1 Arm Bridge (Mock) | Wired and tested | C++17, UNIX socket |
+| D1 Arm Monitoring | Wired and tested | D1 Bridge online |
+| Mission CRUD | Wired and tested | Python app |
+| ROS mapping/nav | API contract ready | Ubuntu 20.04, ROS 2 Foxy |
+| Real Go2 SDK | Adapter boundary present | `unitree_sdk2py`, Go2 hardware |
+| Real D1 Arm SDK feedback | Bridge backend ready | Ubuntu 20.04, D1 hardware |
+| Real D1 Arm SDK commands | Implemented but disabled by default | Ubuntu 20.04, D1 hardware, explicit motion enable |
 
 ## More Docs
 
-- [BUILD.md](BUILD.md): dependency, build, and launch details.
+- [BUILD.md](BUILD.md): build and launch details for all components.
+- [D1_BRIDGE_SETUP.md](D1_BRIDGE_SETUP.md): D1 bridge bring-up and protocol.
+- [ARCHITECTURE.MD](ARCHITECTURE.MD): system design and boundaries.
 - [GO2_QUICKSTART.md](GO2_QUICKSTART.md): short operator workflow.
-- [ARCHITECTURE.MD](ARCHITECTURE.MD): current architecture and boundaries.
 - [GO2_MVP_TECHNOLOGY_RU.md](GO2_MVP_TECHNOLOGY_RU.md): Russian technical overview.
