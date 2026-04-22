@@ -1,0 +1,402 @@
+[0.000000] (-) TimerEvent: {}
+[0.000681] (-) JobUnselected: {'identifier': 'go2_nav_bringup'}
+[0.000887] (go2_interfaces) JobQueued: {'identifier': 'go2_interfaces', 'dependencies': OrderedDict()}
+[0.001301] (go2_bridge) JobQueued: {'identifier': 'go2_bridge', 'dependencies': OrderedDict([('go2_interfaces', '/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces')])}
+[0.001606] (go2_mission) JobQueued: {'identifier': 'go2_mission', 'dependencies': OrderedDict([('go2_interfaces', '/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces')])}
+[0.001773] (go2_interfaces) JobStarted: {'identifier': 'go2_interfaces'}
+[0.099492] (-) TimerEvent: {}
+[0.200290] (-) TimerEvent: {}
+[0.216549] (go2_interfaces) JobProgress: {'identifier': 'go2_interfaces', 'progress': 'cmake'}
+[0.217972] (go2_interfaces) JobProgress: {'identifier': 'go2_interfaces', 'progress': 'build'}
+[0.219150] (go2_interfaces) Command: {'cmd': ['/usr/bin/cmake', '--build', '/home/unitree/go/Go2Robot/ros_ws/build/go2_interfaces', '--', '-j4', '-l4'], 'cwd': '/home/unitree/go/Go2Robot/ros_ws/build/go2_interfaces', 'env': OrderedDict([('LESSOPEN', '| /usr/bin/lesspipe %s'), ('USER', 'unitree'), ('SSH_CLIENT', '192.168.123.222 35912 22'), ('XDG_SESSION_TYPE', 'tty'), ('SHLVL', '1'), ('LD_LIBRARY_PATH', '/usr/local/cuda-11.4/lib64:/usr/local/lib:/home/unitree/cyclonedds_ws/install/rmw_cyclonedds_cpp/lib:/home/unitree/cyclonedds_ws/install/cyclonedds/lib:/opt/ros/foxy/opt/yaml_cpp_vendor/lib:/opt/ros/foxy/opt/rviz_ogre_vendor/lib:/opt/ros/foxy/lib/aarch64-linux-gnu:/opt/ros/foxy/lib'), ('MOTD_SHOWN', 'pam'), ('HOME', '/home/unitree'), ('CYCLONEDDS_URI', '/home/unitree/cyclonedds_ws/cyclonedds.xml'), ('OLDPWD', '/home/unitree/go/Go2Robot/ros_ws'), ('SSH_TTY', '/dev/pts/0'), ('ROS_PYTHON_VERSION', '3'), ('DBUS_SESSION_BUS_ADDRESS', 'unix:path=/run/user/1000/bus'), ('PYTHONNOUSERSITE', '1'), ('ROS_DISTRO', 'foxy'), ('LOGNAME', 'unitree'), ('_', '/usr/bin/colcon'), ('ROS_VERSION', '2'), ('PKG_CONFIG_PATH', '/home/unitree/cyclonedds_ws/install/cyclonedds/lib/aarch64-linux-gnu/pkgconfig:/home/unitree/cyclonedds_ws/install/cyclonedds/lib/pkgconfig'), ('XDG_SESSION_CLASS', 'user'), ('TERM', 'xterm-256color'), ('XDG_SESSION_ID', '13'), ('ROS_LOCALHOST_ONLY', '0'), ('PATH', '/home/unitree/.local/bin:/usr/local/cuda-11.4/bin:/home/unitree/cyclonedds_ws/install/cyclonedds/bin:/opt/ros/foxy/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin'), ('XDG_RUNTIME_DIR', '/run/user/1000'), ('LANG', 'en_US.UTF-8'), ('RMW_IMPLEMENTATION', 'rmw_cyclonedds_cpp'), ('LS_COLORS', 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:'), ('AMENT_PREFIX_PATH', '/opt/ros/foxy'), ('SHELL', '/bin/bash'), ('LESSCLOSE', '/usr/bin/lesspipe %s %s'), ('PWD', '/home/unitree/go/Go2Robot/ros_ws/build/go2_interfaces'), ('SSH_CONNECTION', '192.168.123.222 35912 192.168.123.18 22'), ('XDG_DATA_DIRS', '/usr/local/share:/usr/share:/var/lib/snapd/desktop'), ('PYTHONPATH', '/opt/ros/foxy/lib/python3.8/site-packages'), ('COLCON', '1')]), 'shell': False}
+[0.300558] (-) TimerEvent: {}
+[0.305880] (go2_interfaces) StdoutLine: {'line': b'[  2%] \x1b[34m\x1b[1mGenerating C code for ROS interfaces\x1b[0m\n'}
+[0.306471] (go2_interfaces) StdoutLine: {'line': b'\x1b[35m\x1b[1mScanning dependencies of target go2_interfaces__cpp\x1b[0m\n'}
+[0.328384] (go2_interfaces) StdoutLine: {'line': b'[  5%] \x1b[34m\x1b[1mGenerating C++ code for ROS interfaces\x1b[0m\n'}
+[0.400643] (-) TimerEvent: {}
+[0.501467] (-) TimerEvent: {}
+[0.602060] (-) TimerEvent: {}
+[0.702855] (-) TimerEvent: {}
+[0.803380] (-) TimerEvent: {}
+[0.903983] (-) TimerEvent: {}
+[0.969926] (go2_interfaces) StdoutLine: {'line': b'[  5%] Built target go2_interfaces__cpp\n'}
+[0.989465] (go2_interfaces) StdoutLine: {'line': b'[ 12%] \x1b[34m\x1b[1mGenerating C++ type support dispatch for ROS interfaces\x1b[0m\n'}
+[0.990131] (go2_interfaces) StdoutLine: {'line': b'[ 12%] \x1b[34m\x1b[1mGenerating C++ type support for eProsima Fast-RTPS\x1b[0m\n'}
+[0.990365] (go2_interfaces) StdoutLine: {'line': b'\x1b[35m\x1b[1mScanning dependencies of target go2_interfaces__rosidl_generator_c\x1b[0m\n'}
+[0.990532] (go2_interfaces) StdoutLine: {'line': b'[ 12%] \x1b[34m\x1b[1mGenerating C++ introspection for ROS interfaces\x1b[0m\n'}
+[1.004124] (-) TimerEvent: {}
+[1.024130] (go2_interfaces) StdoutLine: {'line': b'[ 15%] \x1b[32mBuilding C object CMakeFiles/go2_interfaces__rosidl_generator_c.dir/rosidl_generator_c/go2_interfaces/srv/detail/checkpoint_capture__functions.c.o\x1b[0m\n'}
+[1.104318] (-) TimerEvent: {}
+[1.159608] (go2_interfaces) StdoutLine: {'line': b'[ 17%] \x1b[32mBuilding C object CMakeFiles/go2_interfaces__rosidl_generator_c.dir/rosidl_generator_c/go2_interfaces/srv/detail/mission_control__functions.c.o\x1b[0m\n'}
+[1.204497] (-) TimerEvent: {}
+[1.281513] (go2_interfaces) StdoutLine: {'line': b'[ 20%] \x1b[32m\x1b[1mLinking C shared library libgo2_interfaces__rosidl_generator_c.so\x1b[0m\n'}
+[1.304656] (-) TimerEvent: {}
+[1.350386] (go2_interfaces) StdoutLine: {'line': b'[ 20%] Built target go2_interfaces__rosidl_generator_c\n'}
+[1.373567] (go2_interfaces) StdoutLine: {'line': b'[ 23%] \x1b[34m\x1b[1mGenerating C introspection for ROS interfaces\x1b[0m\n'}
+[1.404814] (-) TimerEvent: {}
+[1.505442] (-) TimerEvent: {}
+[1.508289] (go2_interfaces) StdoutLine: {'line': b'\x1b[35m\x1b[1mScanning dependencies of target go2_interfaces__rosidl_typesupport_cpp\x1b[0m\n'}
+[1.537452] (go2_interfaces) StdoutLine: {'line': b'[ 25%] \x1b[32mBuilding CXX object CMakeFiles/go2_interfaces__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/go2_interfaces/srv/checkpoint_capture__type_support.cpp.o\x1b[0m\n'}
+[1.602941] (go2_interfaces) StdoutLine: {'line': b'\x1b[35m\x1b[1mScanning dependencies of target go2_interfaces__rosidl_typesupport_introspection_cpp\x1b[0m\n'}
+[1.605543] (-) TimerEvent: {}
+[1.631115] (go2_interfaces) StdoutLine: {'line': b'[ 28%] \x1b[32mBuilding CXX object CMakeFiles/go2_interfaces__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/go2_interfaces/srv/detail/checkpoint_capture__type_support.cpp.o\x1b[0m\n'}
+[1.637741] (go2_interfaces) StdoutLine: {'line': b'\x1b[35m\x1b[1mScanning dependencies of target go2_interfaces__rosidl_typesupport_fastrtps_cpp\x1b[0m\n'}
+[1.678467] (go2_interfaces) StdoutLine: {'line': b'[ 30%] \x1b[32mBuilding CXX object CMakeFiles/go2_interfaces__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/go2_interfaces/srv/detail/dds_fastrtps/checkpoint_capture__type_support.cpp.o\x1b[0m\n'}
+[1.705725] (-) TimerEvent: {}
+[1.806351] (-) TimerEvent: {}
+[1.907073] (-) TimerEvent: {}
+[2.007811] (-) TimerEvent: {}
+[2.013835] (go2_interfaces) StdoutLine: {'line': b'\x1b[35m\x1b[1mScanning dependencies of target go2_interfaces__rosidl_typesupport_introspection_c\x1b[0m\n'}
+[2.044509] (go2_interfaces) StdoutLine: {'line': b'[ 33%] \x1b[32mBuilding C object CMakeFiles/go2_interfaces__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/go2_interfaces/srv/detail/checkpoint_capture__type_support.c.o\x1b[0m\n'}
+[2.108000] (-) TimerEvent: {}
+[2.124284] (go2_interfaces) StdoutLine: {'line': b'[ 35%] \x1b[32mBuilding C object CMakeFiles/go2_interfaces__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/go2_interfaces/srv/detail/mission_control__type_support.c.o\x1b[0m\n'}
+[2.184121] (go2_interfaces) StdoutLine: {'line': b'[ 38%] \x1b[32mBuilding CXX object CMakeFiles/go2_interfaces__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/go2_interfaces/srv/mission_control__type_support.cpp.o\x1b[0m\n'}
+[2.200153] (go2_interfaces) StdoutLine: {'line': b'[ 41%] \x1b[32m\x1b[1mLinking C shared library libgo2_interfaces__rosidl_typesupport_introspection_c.so\x1b[0m\n'}
+[2.208193] (-) TimerEvent: {}
+[2.268210] (go2_interfaces) StdoutLine: {'line': b'[ 41%] Built target go2_interfaces__rosidl_typesupport_introspection_c\n'}
+[2.298919] (go2_interfaces) StdoutLine: {'line': b'[ 43%] \x1b[32mBuilding CXX object CMakeFiles/go2_interfaces__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/go2_interfaces/srv/detail/dds_fastrtps/mission_control__type_support.cpp.o\x1b[0m\n'}
+[2.308382] (-) TimerEvent: {}
+[2.343765] (go2_interfaces) StdoutLine: {'line': b'[ 46%] \x1b[32mBuilding CXX object CMakeFiles/go2_interfaces__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/go2_interfaces/srv/detail/mission_control__type_support.cpp.o\x1b[0m\n'}
+[2.408579] (-) TimerEvent: {}
+[2.509694] (-) TimerEvent: {}
+[2.610811] (-) TimerEvent: {}
+[2.695084] (go2_interfaces) StdoutLine: {'line': b'[ 48%] \x1b[34m\x1b[1mGenerating C type support dispatch for ROS interfaces\x1b[0m\n'}
+[2.711000] (-) TimerEvent: {}
+[2.801319] (go2_interfaces) StdoutLine: {'line': b'[ 51%] \x1b[32m\x1b[1mLinking CXX shared library libgo2_interfaces__rosidl_typesupport_cpp.so\x1b[0m\n'}
+[2.811198] (-) TimerEvent: {}
+[2.888584] (go2_interfaces) StdoutLine: {'line': b'[ 51%] Built target go2_interfaces__rosidl_typesupport_cpp\n'}
+[2.911391] (-) TimerEvent: {}
+[2.972134] (go2_interfaces) StdoutLine: {'line': b'[ 53%] \x1b[32m\x1b[1mLinking CXX shared library libgo2_interfaces__rosidl_typesupport_introspection_cpp.so\x1b[0m\n'}
+[3.011573] (-) TimerEvent: {}
+[3.106070] (go2_interfaces) StdoutLine: {'line': b'[ 53%] Built target go2_interfaces__rosidl_typesupport_introspection_cpp\n'}
+[3.111800] (-) TimerEvent: {}
+[3.210788] (go2_interfaces) StdoutLine: {'line': b'\x1b[35m\x1b[1mScanning dependencies of target go2_interfaces__rosidl_typesupport_c\x1b[0m\n'}
+[3.211364] (go2_interfaces) StdoutLine: {'line': b'[ 56%] \x1b[32m\x1b[1mLinking CXX shared library libgo2_interfaces__rosidl_typesupport_fastrtps_cpp.so\x1b[0m\n'}
+[3.211864] (-) TimerEvent: {}
+[3.234226] (go2_interfaces) StdoutLine: {'line': b'[ 61%] \x1b[32mBuilding CXX object CMakeFiles/go2_interfaces__rosidl_typesupport_c.dir/rosidl_typesupport_c/go2_interfaces/srv/mission_control__type_support.cpp.o\x1b[0m\n'}
+[3.234746] (go2_interfaces) StdoutLine: {'line': b'[ 61%] \x1b[32mBuilding CXX object CMakeFiles/go2_interfaces__rosidl_typesupport_c.dir/rosidl_typesupport_c/go2_interfaces/srv/checkpoint_capture__type_support.cpp.o\x1b[0m\n'}
+[3.301011] (go2_interfaces) StdoutLine: {'line': b'[ 64%] \x1b[32m\x1b[1mLinking CXX shared library libgo2_interfaces__rosidl_typesupport_c.so\x1b[0m\n'}
+[3.312067] (-) TimerEvent: {}
+[3.371782] (go2_interfaces) StdoutLine: {'line': b'[ 64%] Built target go2_interfaces__rosidl_typesupport_c\n'}
+[3.372286] (go2_interfaces) StdoutLine: {'line': b'[ 64%] Built target go2_interfaces__rosidl_typesupport_fastrtps_cpp\n'}
+[3.392239] (go2_interfaces) StdoutLine: {'line': b'[ 66%] \x1b[34m\x1b[1mGenerating C type support for eProsima Fast-RTPS\x1b[0m\n'}
+[3.412194] (-) TimerEvent: {}
+[3.512724] (-) TimerEvent: {}
+[3.613290] (-) TimerEvent: {}
+[3.713804] (-) TimerEvent: {}
+[3.814249] (-) TimerEvent: {}
+[3.914772] (-) TimerEvent: {}
+[3.935318] (go2_interfaces) StdoutLine: {'line': b'\x1b[35m\x1b[1mScanning dependencies of target go2_interfaces__rosidl_typesupport_fastrtps_c\x1b[0m\n'}
+[3.968262] (go2_interfaces) StdoutLine: {'line': b'[ 71%] \x1b[32mBuilding CXX object CMakeFiles/go2_interfaces__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/go2_interfaces/srv/detail/mission_control__type_support_c.cpp.o\x1b[0m\n'}
+[3.968764] (go2_interfaces) StdoutLine: {'line': b'[ 71%] \x1b[32mBuilding CXX object CMakeFiles/go2_interfaces__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/go2_interfaces/srv/detail/checkpoint_capture__type_support_c.cpp.o\x1b[0m\n'}
+[4.014961] (-) TimerEvent: {}
+[4.115736] (-) TimerEvent: {}
+[4.216436] (-) TimerEvent: {}
+[4.317133] (-) TimerEvent: {}
+[4.418011] (-) TimerEvent: {}
+[4.518894] (-) TimerEvent: {}
+[4.619783] (-) TimerEvent: {}
+[4.720703] (-) TimerEvent: {}
+[4.722195] (go2_interfaces) StdoutLine: {'line': b'[ 74%] \x1b[32m\x1b[1mLinking CXX shared library libgo2_interfaces__rosidl_typesupport_fastrtps_c.so\x1b[0m\n'}
+[4.820871] (-) TimerEvent: {}
+[4.863074] (go2_interfaces) StdoutLine: {'line': b'[ 74%] Built target go2_interfaces__rosidl_typesupport_fastrtps_c\n'}
+[4.883391] (go2_interfaces) StdoutLine: {'line': b'\x1b[35m\x1b[1mScanning dependencies of target go2_interfaces\x1b[0m\n'}
+[4.903794] (go2_interfaces) StdoutLine: {'line': b'[ 74%] Built target go2_interfaces\n'}
+[4.921003] (-) TimerEvent: {}
+[4.923854] (go2_interfaces) StdoutLine: {'line': b'\x1b[35m\x1b[1mScanning dependencies of target go2_interfaces__py\x1b[0m\n'}
+[4.944724] (go2_interfaces) StdoutLine: {'line': b'[ 76%] \x1b[34m\x1b[1mGenerating Python code for ROS interfaces\x1b[0m\n'}
+[5.021138] (-) TimerEvent: {}
+[5.121677] (-) TimerEvent: {}
+[5.222200] (-) TimerEvent: {}
+[5.322740] (-) TimerEvent: {}
+[5.423255] (-) TimerEvent: {}
+[5.524037] (-) TimerEvent: {}
+[5.624765] (-) TimerEvent: {}
+[5.725331] (-) TimerEvent: {}
+[5.825860] (-) TimerEvent: {}
+[5.926322] (-) TimerEvent: {}
+[6.026809] (-) TimerEvent: {}
+[6.127571] (-) TimerEvent: {}
+[6.228174] (-) TimerEvent: {}
+[6.328683] (-) TimerEvent: {}
+[6.429215] (-) TimerEvent: {}
+[6.530138] (-) TimerEvent: {}
+[6.578458] (go2_interfaces) StdoutLine: {'line': b'[ 76%] Built target go2_interfaces__py\n'}
+[6.598433] (go2_interfaces) StdoutLine: {'line': b'\x1b[35m\x1b[1mScanning dependencies of target go2_interfaces__python\x1b[0m\n'}
+[6.630276] (-) TimerEvent: {}
+[6.645695] (go2_interfaces) StdoutLine: {'line': b'[ 82%] \x1b[32mBuilding C object CMakeFiles/go2_interfaces__python.dir/rosidl_generator_py/go2_interfaces/srv/_mission_control_s.c.o\x1b[0m\n'}
+[6.646162] (go2_interfaces) StdoutLine: {'line': b'[ 82%] \x1b[32mBuilding C object CMakeFiles/go2_interfaces__python.dir/rosidl_generator_py/go2_interfaces/srv/_checkpoint_capture_s.c.o\x1b[0m\n'}
+[6.730446] (-) TimerEvent: {}
+[6.831123] (-) TimerEvent: {}
+[6.843071] (go2_interfaces) StdoutLine: {'line': b'[ 84%] \x1b[32m\x1b[1mLinking C shared library rosidl_generator_py/go2_interfaces/libgo2_interfaces__python.so\x1b[0m\n'}
+[6.911859] (go2_interfaces) StdoutLine: {'line': b'[ 84%] Built target go2_interfaces__python\n'}
+[6.931317] (-) TimerEvent: {}
+[6.932199] (go2_interfaces) StdoutLine: {'line': b'\x1b[35m\x1b[1mScanning dependencies of target go2_interfaces__rosidl_typesupport_c__pyext\x1b[0m\n'}
+[6.932557] (go2_interfaces) StdoutLine: {'line': b'\x1b[35m\x1b[1mScanning dependencies of target go2_interfaces__rosidl_typesupport_introspection_c__pyext\x1b[0m\n'}
+[6.932707] (go2_interfaces) StdoutLine: {'line': b'\x1b[35m\x1b[1mScanning dependencies of target go2_interfaces__rosidl_typesupport_fastrtps_c__pyext\x1b[0m\n'}
+[6.964979] (go2_interfaces) StdoutLine: {'line': b'[ 89%] \x1b[32mBuilding C object CMakeFiles/go2_interfaces__rosidl_typesupport_introspection_c__pyext.dir/rosidl_generator_py/go2_interfaces/_go2_interfaces_s.ep.rosidl_typesupport_introspection_c.c.o\x1b[0m\n'}
+[6.965519] (go2_interfaces) StdoutLine: {'line': b'[ 89%] \x1b[32mBuilding C object CMakeFiles/go2_interfaces__rosidl_typesupport_c__pyext.dir/rosidl_generator_py/go2_interfaces/_go2_interfaces_s.ep.rosidl_typesupport_c.c.o\x1b[0m\n'}
+[6.971553] (go2_interfaces) StdoutLine: {'line': b'[ 92%] \x1b[32mBuilding C object CMakeFiles/go2_interfaces__rosidl_typesupport_fastrtps_c__pyext.dir/rosidl_generator_py/go2_interfaces/_go2_interfaces_s.ep.rosidl_typesupport_fastrtps_c.c.o\x1b[0m\n'}
+[7.031503] (-) TimerEvent: {}
+[7.132554] (-) TimerEvent: {}
+[7.133401] (go2_interfaces) StdoutLine: {'line': b'[ 94%] \x1b[32m\x1b[1mLinking C shared library rosidl_generator_py/go2_interfaces/go2_interfaces_s__rosidl_typesupport_c.cpython-38-aarch64-linux-gnu.so\x1b[0m\n'}
+[7.134063] (go2_interfaces) StdoutLine: {'line': b'[ 97%] \x1b[32m\x1b[1mLinking C shared library rosidl_generator_py/go2_interfaces/go2_interfaces_s__rosidl_typesupport_introspection_c.cpython-38-aarch64-linux-gnu.so\x1b[0m\n'}
+[7.141105] (go2_interfaces) StdoutLine: {'line': b'[100%] \x1b[32m\x1b[1mLinking CXX shared library rosidl_generator_py/go2_interfaces/go2_interfaces_s__rosidl_typesupport_fastrtps_c.cpython-38-aarch64-linux-gnu.so\x1b[0m\n'}
+[7.198501] (go2_interfaces) StdoutLine: {'line': b'[100%] Built target go2_interfaces__rosidl_typesupport_introspection_c__pyext\n'}
+[7.199196] (go2_interfaces) StdoutLine: {'line': b'[100%] Built target go2_interfaces__rosidl_typesupport_c__pyext\n'}
+[7.232719] (-) TimerEvent: {}
+[7.249503] (go2_interfaces) StdoutLine: {'line': b'[100%] Built target go2_interfaces__rosidl_typesupport_fastrtps_c__pyext\n'}
+[7.273371] (go2_interfaces) CommandEnded: {'returncode': 0}
+[7.332903] (-) TimerEvent: {}
+[7.433646] (-) TimerEvent: {}
+[7.481921] (go2_interfaces) JobProgress: {'identifier': 'go2_interfaces', 'progress': 'install'}
+[7.506619] (go2_interfaces) Command: {'cmd': ['/usr/bin/cmake', '--install', '/home/unitree/go/Go2Robot/ros_ws/build/go2_interfaces'], 'cwd': '/home/unitree/go/Go2Robot/ros_ws/build/go2_interfaces', 'env': OrderedDict([('LESSOPEN', '| /usr/bin/lesspipe %s'), ('USER', 'unitree'), ('SSH_CLIENT', '192.168.123.222 35912 22'), ('XDG_SESSION_TYPE', 'tty'), ('SHLVL', '1'), ('LD_LIBRARY_PATH', '/usr/local/cuda-11.4/lib64:/usr/local/lib:/home/unitree/cyclonedds_ws/install/rmw_cyclonedds_cpp/lib:/home/unitree/cyclonedds_ws/install/cyclonedds/lib:/opt/ros/foxy/opt/yaml_cpp_vendor/lib:/opt/ros/foxy/opt/rviz_ogre_vendor/lib:/opt/ros/foxy/lib/aarch64-linux-gnu:/opt/ros/foxy/lib'), ('MOTD_SHOWN', 'pam'), ('HOME', '/home/unitree'), ('CYCLONEDDS_URI', '/home/unitree/cyclonedds_ws/cyclonedds.xml'), ('OLDPWD', '/home/unitree/go/Go2Robot/ros_ws'), ('SSH_TTY', '/dev/pts/0'), ('ROS_PYTHON_VERSION', '3'), ('DBUS_SESSION_BUS_ADDRESS', 'unix:path=/run/user/1000/bus'), ('PYTHONNOUSERSITE', '1'), ('ROS_DISTRO', 'foxy'), ('LOGNAME', 'unitree'), ('_', '/usr/bin/colcon'), ('ROS_VERSION', '2'), ('PKG_CONFIG_PATH', '/home/unitree/cyclonedds_ws/install/cyclonedds/lib/aarch64-linux-gnu/pkgconfig:/home/unitree/cyclonedds_ws/install/cyclonedds/lib/pkgconfig'), ('XDG_SESSION_CLASS', 'user'), ('TERM', 'xterm-256color'), ('XDG_SESSION_ID', '13'), ('ROS_LOCALHOST_ONLY', '0'), ('PATH', '/home/unitree/.local/bin:/usr/local/cuda-11.4/bin:/home/unitree/cyclonedds_ws/install/cyclonedds/bin:/opt/ros/foxy/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin'), ('XDG_RUNTIME_DIR', '/run/user/1000'), ('LANG', 'en_US.UTF-8'), ('RMW_IMPLEMENTATION', 'rmw_cyclonedds_cpp'), ('LS_COLORS', 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:'), ('AMENT_PREFIX_PATH', '/opt/ros/foxy'), ('SHELL', '/bin/bash'), ('LESSCLOSE', '/usr/bin/lesspipe %s %s'), ('PWD', '/home/unitree/go/Go2Robot/ros_ws/build/go2_interfaces'), ('SSH_CONNECTION', '192.168.123.222 35912 192.168.123.18 22'), ('XDG_DATA_DIRS', '/usr/local/share:/usr/share:/var/lib/snapd/desktop'), ('PYTHONPATH', '/opt/ros/foxy/lib/python3.8/site-packages'), ('COLCON', '1')]), 'shell': False}
+[7.530089] (go2_interfaces) StdoutLine: {'line': b'-- Install configuration: ""\n'}
+[7.530578] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/ament_index/resource_index/rosidl_interfaces/go2_interfaces\n'}
+[7.530851] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces\n'}
+[7.531042] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv\n'}
+[7.531201] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/mission_control.h\n'}
+[7.531391] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/checkpoint_capture.h\n'}
+[7.531571] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail\n'}
+[7.531810] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/checkpoint_capture__type_support.h\n'}
+[7.532025] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/checkpoint_capture__functions.h\n'}
+[7.532254] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/mission_control__functions.c\n'}
+[7.532487] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/mission_control__struct.h\n'}
+[7.532675] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/checkpoint_capture__struct.h\n'}
+[7.532861] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/mission_control__functions.h\n'}
+[7.533079] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/checkpoint_capture__functions.c\n'}
+[7.533322] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/mission_control__type_support.h\n'}
+[7.533501] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/msg\n'}
+[7.533635] (-) TimerEvent: {}
+[7.533945] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/msg/rosidl_generator_c__visibility_control.h\n'}
+[7.534138] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/environment/library_path.sh\n'}
+[7.534381] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/environment/library_path.dsv\n'}
+[7.534774] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__rosidl_generator_c.so\n'}
+[7.535400] (go2_interfaces) StdoutLine: {'line': b'-- Set runtime path of "/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__rosidl_generator_c.so" to ""\n'}
+[7.535564] (go2_interfaces) StdoutLine: {'line': b'-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces\n'}
+[7.535804] (go2_interfaces) StdoutLine: {'line': b'-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv\n'}
+[7.535940] (go2_interfaces) StdoutLine: {'line': b'-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail\n'}
+[7.536091] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/checkpoint_capture__rosidl_typesupport_fastrtps_c.h\n'}
+[7.536273] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/mission_control__rosidl_typesupport_fastrtps_c.h\n'}
+[7.536400] (go2_interfaces) StdoutLine: {'line': b'-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/msg\n'}
+[7.536515] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/msg/rosidl_typesupport_fastrtps_c__visibility_control.h\n'}
+[7.536660] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__rosidl_typesupport_fastrtps_c.so\n'}
+[7.537227] (go2_interfaces) StdoutLine: {'line': b'-- Set runtime path of "/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__rosidl_typesupport_fastrtps_c.so" to ""\n'}
+[7.537368] (go2_interfaces) StdoutLine: {'line': b'-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces\n'}
+[7.537531] (go2_interfaces) StdoutLine: {'line': b'-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv\n'}
+[7.537676] (go2_interfaces) StdoutLine: {'line': b'-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail\n'}
+[7.537818] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/mission_control__rosidl_typesupport_fastrtps_cpp.hpp\n'}
+[7.537934] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/checkpoint_capture__rosidl_typesupport_fastrtps_cpp.hpp\n'}
+[7.538069] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/dds_fastrtps\n'}
+[7.538235] (go2_interfaces) StdoutLine: {'line': b'-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/msg\n'}
+[7.538349] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/msg/rosidl_typesupport_fastrtps_cpp__visibility_control.h\n'}
+[7.538527] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__rosidl_typesupport_fastrtps_cpp.so\n'}
+[7.539224] (go2_interfaces) StdoutLine: {'line': b'-- Set runtime path of "/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__rosidl_typesupport_fastrtps_cpp.so" to ""\n'}
+[7.539365] (go2_interfaces) StdoutLine: {'line': b'-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces\n'}
+[7.539522] (go2_interfaces) StdoutLine: {'line': b'-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv\n'}
+[7.539709] (go2_interfaces) StdoutLine: {'line': b'-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail\n'}
+[7.539827] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/mission_control__rosidl_typesupport_introspection_c.h\n'}
+[7.539989] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/checkpoint_capture__rosidl_typesupport_introspection_c.h\n'}
+[7.540186] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/mission_control__type_support.c\n'}
+[7.540404] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/checkpoint_capture__type_support.c\n'}
+[7.540618] (go2_interfaces) StdoutLine: {'line': b'-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/msg\n'}
+[7.541082] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/msg/rosidl_typesupport_introspection_c__visibility_control.h\n'}
+[7.541247] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__rosidl_typesupport_introspection_c.so\n'}
+[7.541898] (go2_interfaces) StdoutLine: {'line': b'-- Set runtime path of "/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__rosidl_typesupport_introspection_c.so" to ""\n'}
+[7.542058] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__rosidl_typesupport_c.so\n'}
+[7.542407] (go2_interfaces) StdoutLine: {'line': b'-- Set runtime path of "/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__rosidl_typesupport_c.so" to ""\n'}
+[7.542546] (go2_interfaces) StdoutLine: {'line': b'-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces\n'}
+[7.542712] (go2_interfaces) StdoutLine: {'line': b'-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv\n'}
+[7.542826] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/mission_control.hpp\n'}
+[7.542967] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/checkpoint_capture.hpp\n'}
+[7.543105] (go2_interfaces) StdoutLine: {'line': b'-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail\n'}
+[7.543245] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/mission_control__type_support.hpp\n'}
+[7.543388] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/checkpoint_capture__builder.hpp\n'}
+[7.543534] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/mission_control__traits.hpp\n'}
+[7.543750] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/mission_control__struct.hpp\n'}
+[7.543960] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/checkpoint_capture__traits.hpp\n'}
+[7.544172] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/mission_control__builder.hpp\n'}
+[7.544372] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/checkpoint_capture__struct.hpp\n'}
+[7.544582] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/checkpoint_capture__type_support.hpp\n'}
+[7.544758] (go2_interfaces) StdoutLine: {'line': b'-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/msg\n'}
+[7.544908] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/msg/rosidl_generator_cpp__visibility_control.hpp\n'}
+[7.545089] (go2_interfaces) StdoutLine: {'line': b'-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces\n'}
+[7.545256] (go2_interfaces) StdoutLine: {'line': b'-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv\n'}
+[7.545397] (go2_interfaces) StdoutLine: {'line': b'-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail\n'}
+[7.545536] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/checkpoint_capture__rosidl_typesupport_introspection_cpp.hpp\n'}
+[7.545650] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/mission_control__type_support.cpp\n'}
+[7.545792] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/mission_control__rosidl_typesupport_introspection_cpp.hpp\n'}
+[7.545963] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/checkpoint_capture__type_support.cpp\n'}
+[7.546326] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__rosidl_typesupport_introspection_cpp.so\n'}
+[7.547020] (go2_interfaces) StdoutLine: {'line': b'-- Set runtime path of "/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__rosidl_typesupport_introspection_cpp.so" to ""\n'}
+[7.547226] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__rosidl_typesupport_cpp.so\n'}
+[7.547910] (go2_interfaces) StdoutLine: {'line': b'-- Set runtime path of "/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__rosidl_typesupport_cpp.so" to ""\n'}
+[7.548075] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/environment/pythonpath.sh\n'}
+[7.548325] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/environment/pythonpath.dsv\n'}
+[7.548731] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages/go2_interfaces/__init__.py\n'}
+[7.599424] (go2_interfaces) StdoutLine: {'line': b"Compiling '/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages/go2_interfaces/__init__.py'...\n"}
+[7.608411] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages/go2_interfaces/srv\n'}
+[7.608902] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages/go2_interfaces/srv/_checkpoint_capture.py\n'}
+[7.609082] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages/go2_interfaces/srv/_checkpoint_capture_s.c\n'}
+[7.609230] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages/go2_interfaces/srv/_mission_control_s.c\n'}
+[7.609368] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages/go2_interfaces/srv/_mission_control.py\n'}
+[7.609570] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages/go2_interfaces/srv/__init__.py\n'}
+[7.610169] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages/go2_interfaces/go2_interfaces_s__rosidl_typesupport_fastrtps_c.cpython-38-aarch64-linux-gnu.so\n'}
+[7.611027] (go2_interfaces) StdoutLine: {'line': b'-- Set runtime path of "/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages/go2_interfaces/go2_interfaces_s__rosidl_typesupport_fastrtps_c.cpython-38-aarch64-linux-gnu.so" to ""\n'}
+[7.611456] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages/go2_interfaces/go2_interfaces_s__rosidl_typesupport_introspection_c.cpython-38-aarch64-linux-gnu.so\n'}
+[7.612326] (go2_interfaces) StdoutLine: {'line': b'-- Set runtime path of "/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages/go2_interfaces/go2_interfaces_s__rosidl_typesupport_introspection_c.cpython-38-aarch64-linux-gnu.so" to ""\n'}
+[7.612689] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages/go2_interfaces/go2_interfaces_s__rosidl_typesupport_c.cpython-38-aarch64-linux-gnu.so\n'}
+[7.613470] (go2_interfaces) StdoutLine: {'line': b'-- Set runtime path of "/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages/go2_interfaces/go2_interfaces_s__rosidl_typesupport_c.cpython-38-aarch64-linux-gnu.so" to ""\n'}
+[7.613676] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__python.so\n'}
+[7.614239] (go2_interfaces) StdoutLine: {'line': b'-- Set runtime path of "/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__python.so" to ""\n'}
+[7.614475] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/srv/CheckpointCapture.idl\n'}
+[7.614739] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/srv/MissionControl.idl\n'}
+[7.615013] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/srv/CheckpointCapture.srv\n'}
+[7.615274] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/srv/CheckpointCapture_Request.msg\n'}
+[7.615530] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/srv/CheckpointCapture_Response.msg\n'}
+[7.615804] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/srv/MissionControl.srv\n'}
+[7.616055] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/srv/MissionControl_Request.msg\n'}
+[7.616309] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/srv/MissionControl_Response.msg\n'}
+[7.616676] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/ament_index/resource_index/package_run_dependencies/go2_interfaces\n'}
+[7.617029] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/ament_index/resource_index/parent_prefix_path/go2_interfaces\n'}
+[7.617309] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/environment/ament_prefix_path.sh\n'}
+[7.617575] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/environment/ament_prefix_path.dsv\n'}
+[7.617836] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/environment/path.sh\n'}
+[7.618116] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/environment/path.dsv\n'}
+[7.618374] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/local_setup.bash\n'}
+[7.618625] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/local_setup.sh\n'}
+[7.618876] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/local_setup.zsh\n'}
+[7.619123] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/local_setup.dsv\n'}
+[7.619368] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/package.dsv\n'}
+[7.619735] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/ament_index/resource_index/packages/go2_interfaces\n'}
+[7.620129] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/go2_interfaces__rosidl_generator_cExport.cmake\n'}
+[7.620414] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/go2_interfaces__rosidl_generator_cExport-noconfig.cmake\n'}
+[7.620781] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/go2_interfaces__rosidl_typesupport_introspection_cExport.cmake\n'}
+[7.621069] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/go2_interfaces__rosidl_typesupport_introspection_cExport-noconfig.cmake\n'}
+[7.621409] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/go2_interfaces__rosidl_typesupport_cExport.cmake\n'}
+[7.621686] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/go2_interfaces__rosidl_typesupport_cExport-noconfig.cmake\n'}
+[7.622044] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/go2_interfaces__rosidl_generator_cppExport.cmake\n'}
+[7.622405] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/go2_interfaces__rosidl_typesupport_introspection_cppExport.cmake\n'}
+[7.622688] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/go2_interfaces__rosidl_typesupport_introspection_cppExport-noconfig.cmake\n'}
+[7.623025] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/go2_interfaces__rosidl_typesupport_cppExport.cmake\n'}
+[7.623293] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/go2_interfaces__rosidl_typesupport_cppExport-noconfig.cmake\n'}
+[7.623552] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/rosidl_cmake-extras.cmake\n'}
+[7.623832] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/ament_cmake_export_dependencies-extras.cmake\n'}
+[7.624097] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/ament_cmake_export_libraries-extras.cmake\n'}
+[7.624370] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/ament_cmake_export_targets-extras.cmake\n'}
+[7.624628] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/ament_cmake_export_include_directories-extras.cmake\n'}
+[7.624890] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/rosidl_cmake_export_typesupport_libraries-extras.cmake\n'}
+[7.625157] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/rosidl_cmake_export_typesupport_targets-extras.cmake\n'}
+[7.625410] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/go2_interfacesConfig.cmake\n'}
+[7.625608] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/go2_interfacesConfig-version.cmake\n'}
+[7.625874] (go2_interfaces) StdoutLine: {'line': b'-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/package.xml\n'}
+[7.630232] (go2_interfaces) CommandEnded: {'returncode': 0}
+[7.634597] (-) TimerEvent: {}
+[7.736305] (-) TimerEvent: {}
+[7.837052] (-) TimerEvent: {}
+[7.937728] (-) TimerEvent: {}
+[8.039066] (-) TimerEvent: {}
+[8.139566] (-) TimerEvent: {}
+[8.240268] (-) TimerEvent: {}
+[8.341022] (-) TimerEvent: {}
+[8.441630] (-) TimerEvent: {}
+[8.457524] (go2_interfaces) JobEnded: {'identifier': 'go2_interfaces', 'rc': 0}
+[8.459210] (go2_bridge) JobStarted: {'identifier': 'go2_bridge'}
+[8.541762] (-) TimerEvent: {}
+[8.642451] (-) TimerEvent: {}
+[8.732002] (go2_mission) JobStarted: {'identifier': 'go2_mission'}
+[8.742814] (-) TimerEvent: {}
+[8.843261] (-) TimerEvent: {}
+[8.943864] (-) TimerEvent: {}
+[9.045029] (-) TimerEvent: {}
+[9.145706] (-) TimerEvent: {}
+[9.246278] (-) TimerEvent: {}
+[9.346840] (-) TimerEvent: {}
+[9.448095] (-) TimerEvent: {}
+[9.548805] (-) TimerEvent: {}
+[9.649805] (-) TimerEvent: {}
+[9.750493] (-) TimerEvent: {}
+[9.851441] (-) TimerEvent: {}
+[9.952033] (-) TimerEvent: {}
+[10.052770] (-) TimerEvent: {}
+[10.154085] (-) TimerEvent: {}
+[10.255151] (-) TimerEvent: {}
+[10.356337] (-) TimerEvent: {}
+[10.457093] (-) TimerEvent: {}
+[10.557644] (-) TimerEvent: {}
+[10.658128] (-) TimerEvent: {}
+[10.758698] (-) TimerEvent: {}
+[10.859259] (-) TimerEvent: {}
+[10.959831] (-) TimerEvent: {}
+[11.060416] (-) TimerEvent: {}
+[11.132221] (go2_mission) Command: {'cmd': ['/usr/bin/python3', 'setup.py', 'develop', '--editable', '--build-directory', '/home/unitree/go/Go2Robot/ros_ws/build/go2_mission/build', '--no-deps', 'install_data'], 'cwd': '/home/unitree/go/Go2Robot/ros_ws/build/go2_mission', 'env': {'LESSOPEN': '| /usr/bin/lesspipe %s', 'USER': 'unitree', 'SSH_CLIENT': '192.168.123.222 35912 22', 'XDG_SESSION_TYPE': 'tty', 'ROS_PACKAGE_PATH': '/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share', 'SHLVL': '1', 'LD_LIBRARY_PATH': '/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib:/usr/local/cuda-11.4/lib64:/usr/local/lib:/home/unitree/cyclonedds_ws/install/rmw_cyclonedds_cpp/lib:/home/unitree/cyclonedds_ws/install/cyclonedds/lib:/opt/ros/foxy/opt/yaml_cpp_vendor/lib:/opt/ros/foxy/opt/rviz_ogre_vendor/lib:/opt/ros/foxy/lib/aarch64-linux-gnu:/opt/ros/foxy/lib', 'MOTD_SHOWN': 'pam', 'HOME': '/home/unitree', 'CYCLONEDDS_URI': '/home/unitree/cyclonedds_ws/cyclonedds.xml', 'OLDPWD': '/home/unitree/go/Go2Robot/ros_ws', 'SSH_TTY': '/dev/pts/0', 'ROS_PYTHON_VERSION': '3', 'DBUS_SESSION_BUS_ADDRESS': 'unix:path=/run/user/1000/bus', 'PYTHONNOUSERSITE': '1', 'ROS_DISTRO': 'foxy', 'LOGNAME': 'unitree', '_': '/usr/bin/colcon', 'ROS_VERSION': '2', 'PKG_CONFIG_PATH': '/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/aarch64-linux-gnu/pkgconfig:/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/pkgconfig:/home/unitree/cyclonedds_ws/install/cyclonedds/lib/aarch64-linux-gnu/pkgconfig:/home/unitree/cyclonedds_ws/install/cyclonedds/lib/pkgconfig', 'XDG_SESSION_CLASS': 'user', 'TERM': 'xterm-256color', 'XDG_SESSION_ID': '13', 'ROS_LOCALHOST_ONLY': '0', 'PATH': '/home/unitree/.local/bin:/usr/local/cuda-11.4/bin:/home/unitree/cyclonedds_ws/install/cyclonedds/bin:/opt/ros/foxy/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin', 'XDG_RUNTIME_DIR': '/run/user/1000', 'LANG': 'en_US.UTF-8', 'RMW_IMPLEMENTATION': 'rmw_cyclonedds_cpp', 'LS_COLORS': 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:', 'AMENT_PREFIX_PATH': '/opt/ros/foxy', 'SHELL': '/bin/bash', 'LESSCLOSE': '/usr/bin/lesspipe %s %s', 'PWD': '/home/unitree/go/Go2Robot/ros_ws/build/go2_mission', 'SSH_CONNECTION': '192.168.123.222 35912 192.168.123.18 22', 'XDG_DATA_DIRS': '/usr/local/share:/usr/share:/var/lib/snapd/desktop', 'PYTHONPATH': '/home/unitree/go/Go2Robot/ros_ws/build/go2_mission/prefix_override:/home/unitree/go/Go2Robot/ros_ws/install/go2_mission/lib/python3.8/site-packages:/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages:/opt/ros/foxy/lib/python3.8/site-packages', 'COLCON': '1', 'CMAKE_PREFIX_PATH': '/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces'}, 'shell': False}
+[11.140474] (go2_bridge) Command: {'cmd': ['/usr/bin/python3', 'setup.py', 'develop', '--editable', '--build-directory', '/home/unitree/go/Go2Robot/ros_ws/build/go2_bridge/build', '--no-deps', 'install_data'], 'cwd': '/home/unitree/go/Go2Robot/ros_ws/build/go2_bridge', 'env': {'LESSOPEN': '| /usr/bin/lesspipe %s', 'USER': 'unitree', 'SSH_CLIENT': '192.168.123.222 35912 22', 'XDG_SESSION_TYPE': 'tty', 'ROS_PACKAGE_PATH': '/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share', 'SHLVL': '1', 'LD_LIBRARY_PATH': '/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib:/usr/local/cuda-11.4/lib64:/usr/local/lib:/home/unitree/cyclonedds_ws/install/rmw_cyclonedds_cpp/lib:/home/unitree/cyclonedds_ws/install/cyclonedds/lib:/opt/ros/foxy/opt/yaml_cpp_vendor/lib:/opt/ros/foxy/opt/rviz_ogre_vendor/lib:/opt/ros/foxy/lib/aarch64-linux-gnu:/opt/ros/foxy/lib', 'MOTD_SHOWN': 'pam', 'HOME': '/home/unitree', 'CYCLONEDDS_URI': '/home/unitree/cyclonedds_ws/cyclonedds.xml', 'OLDPWD': '/home/unitree/go/Go2Robot/ros_ws', 'SSH_TTY': '/dev/pts/0', 'ROS_PYTHON_VERSION': '3', 'DBUS_SESSION_BUS_ADDRESS': 'unix:path=/run/user/1000/bus', 'PYTHONNOUSERSITE': '1', 'ROS_DISTRO': 'foxy', 'LOGNAME': 'unitree', '_': '/usr/bin/colcon', 'ROS_VERSION': '2', 'PKG_CONFIG_PATH': '/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/aarch64-linux-gnu/pkgconfig:/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/pkgconfig:/home/unitree/cyclonedds_ws/install/cyclonedds/lib/aarch64-linux-gnu/pkgconfig:/home/unitree/cyclonedds_ws/install/cyclonedds/lib/pkgconfig', 'XDG_SESSION_CLASS': 'user', 'TERM': 'xterm-256color', 'XDG_SESSION_ID': '13', 'ROS_LOCALHOST_ONLY': '0', 'PATH': '/home/unitree/.local/bin:/usr/local/cuda-11.4/bin:/home/unitree/cyclonedds_ws/install/cyclonedds/bin:/opt/ros/foxy/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin', 'XDG_RUNTIME_DIR': '/run/user/1000', 'LANG': 'en_US.UTF-8', 'RMW_IMPLEMENTATION': 'rmw_cyclonedds_cpp', 'LS_COLORS': 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:', 'AMENT_PREFIX_PATH': '/opt/ros/foxy', 'SHELL': '/bin/bash', 'LESSCLOSE': '/usr/bin/lesspipe %s %s', 'PWD': '/home/unitree/go/Go2Robot/ros_ws/build/go2_bridge', 'SSH_CONNECTION': '192.168.123.222 35912 192.168.123.18 22', 'XDG_DATA_DIRS': '/usr/local/share:/usr/share:/var/lib/snapd/desktop', 'PYTHONPATH': '/home/unitree/go/Go2Robot/ros_ws/build/go2_bridge/prefix_override:/home/unitree/go/Go2Robot/ros_ws/install/go2_bridge/lib/python3.8/site-packages:/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages:/opt/ros/foxy/lib/python3.8/site-packages', 'COLCON': '1', 'CMAKE_PREFIX_PATH': '/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces'}, 'shell': False}
+[11.160550] (-) TimerEvent: {}
+[11.261192] (-) TimerEvent: {}
+[11.361835] (-) TimerEvent: {}
+[11.462440] (-) TimerEvent: {}
+[11.563039] (-) TimerEvent: {}
+[11.568062] (go2_mission) StdoutLine: {'line': b'running develop\n'}
+[11.570374] (go2_bridge) StdoutLine: {'line': b'running develop\n'}
+[11.663161] (-) TimerEvent: {}
+[11.763714] (-) TimerEvent: {}
+[11.825151] (go2_bridge) StdoutLine: {'line': b'running egg_info\n'}
+[11.825662] (go2_bridge) StdoutLine: {'line': b'creating go2_bridge.egg-info\n'}
+[11.825853] (go2_mission) StdoutLine: {'line': b'running egg_info\n'}
+[11.826005] (go2_mission) StdoutLine: {'line': b'creating go2_mission.egg-info\n'}
+[11.826129] (go2_mission) StdoutLine: {'line': b'writing go2_mission.egg-info/PKG-INFO\n'}
+[11.826248] (go2_bridge) StdoutLine: {'line': b'writing go2_bridge.egg-info/PKG-INFO\n'}
+[11.828852] (go2_bridge) StdoutLine: {'line': b'writing dependency_links to go2_bridge.egg-info/dependency_links.txt\n'}
+[11.829059] (go2_mission) StdoutLine: {'line': b'writing dependency_links to go2_mission.egg-info/dependency_links.txt\n'}
+[11.829361] (go2_mission) StdoutLine: {'line': b'writing entry points to go2_mission.egg-info/entry_points.txt\n'}
+[11.829587] (go2_bridge) StdoutLine: {'line': b'writing entry points to go2_bridge.egg-info/entry_points.txt\n'}
+[11.829724] (go2_bridge) StdoutLine: {'line': b'writing requirements to go2_bridge.egg-info/requires.txt\n'}
+[11.829848] (go2_mission) StdoutLine: {'line': b'writing requirements to go2_mission.egg-info/requires.txt\n'}
+[11.829967] (go2_bridge) StdoutLine: {'line': b'writing top-level names to go2_bridge.egg-info/top_level.txt\n'}
+[11.830081] (go2_mission) StdoutLine: {'line': b'writing top-level names to go2_mission.egg-info/top_level.txt\n'}
+[11.833259] (go2_bridge) StdoutLine: {'line': b"writing manifest file 'go2_bridge.egg-info/SOURCES.txt'\n"}
+[11.833435] (go2_mission) StdoutLine: {'line': b"writing manifest file 'go2_mission.egg-info/SOURCES.txt'\n"}
+[11.863815] (-) TimerEvent: {}
+[11.886922] (go2_bridge) StdoutLine: {'line': b"reading manifest file 'go2_bridge.egg-info/SOURCES.txt'\n"}
+[11.887320] (go2_mission) StdoutLine: {'line': b"reading manifest file 'go2_mission.egg-info/SOURCES.txt'\n"}
+[11.888092] (go2_mission) StdoutLine: {'line': b"writing manifest file 'go2_mission.egg-info/SOURCES.txt'\n"}
+[11.888280] (go2_bridge) StdoutLine: {'line': b"writing manifest file 'go2_bridge.egg-info/SOURCES.txt'\n"}
+[11.951756] (go2_mission) StdoutLine: {'line': b'running build_ext\n'}
+[11.952170] (go2_bridge) StdoutLine: {'line': b'running build_ext\n'}
+[11.952544] (go2_mission) StdoutLine: {'line': b'Creating /home/unitree/go/Go2Robot/ros_ws/install/go2_mission/lib/python3.8/site-packages/site.py\n'}
+[11.952719] (go2_bridge) StdoutLine: {'line': b'Creating /home/unitree/go/Go2Robot/ros_ws/install/go2_bridge/lib/python3.8/site-packages/site.py\n'}
+[11.956332] (go2_mission) StdoutLine: {'line': b'Creating /home/unitree/go/Go2Robot/ros_ws/install/go2_mission/lib/python3.8/site-packages/go2-mission.egg-link (link to .)\n'}
+[11.956572] (go2_bridge) StdoutLine: {'line': b'Creating /home/unitree/go/Go2Robot/ros_ws/install/go2_bridge/lib/python3.8/site-packages/go2-bridge.egg-link (link to .)\n'}
+[11.958062] (go2_mission) StdoutLine: {'line': b'Installing mission_api_node script to /home/unitree/go/Go2Robot/ros_ws/install/go2_mission/lib/go2_mission\n'}
+[11.958223] (go2_bridge) StdoutLine: {'line': b'Installing base_bridge script to /home/unitree/go/Go2Robot/ros_ws/install/go2_bridge/lib/go2_bridge\n'}
+[11.958426] (go2_mission) StdoutLine: {'line': b'Installing mission_executor script to /home/unitree/go/Go2Robot/ros_ws/install/go2_mission/lib/go2_mission\n'}
+[11.958564] (go2_bridge) StdoutLine: {'line': b'Installing camera_bridge script to /home/unitree/go/Go2Robot/ros_ws/install/go2_bridge/lib/go2_bridge\n'}
+[11.958721] (go2_bridge) StdoutLine: {'line': b'Installing lidar_bridge script to /home/unitree/go/Go2Robot/ros_ws/install/go2_bridge/lib/go2_bridge\n'}
+[11.958897] (go2_mission) StdoutLine: {'line': b'\n'}
+[11.959050] (go2_mission) StdoutLine: {'line': b'Installed /home/unitree/go/Go2Robot/ros_ws/build/go2_mission\n'}
+[11.959256] (go2_mission) StdoutLine: {'line': b'running install_data\n'}
+[11.959459] (go2_bridge) StdoutLine: {'line': b'\n'}
+[11.959685] (go2_bridge) StdoutLine: {'line': b'Installed /home/unitree/go/Go2Robot/ros_ws/build/go2_bridge\n'}
+[11.959872] (go2_mission) StdoutLine: {'line': b'creating /home/unitree/go/Go2Robot/ros_ws/install/go2_mission/share/ament_index\n'}
+[11.960003] (go2_bridge) StdoutLine: {'line': b'running install_data\n'}
+[11.960151] (go2_mission) StdoutLine: {'line': b'creating /home/unitree/go/Go2Robot/ros_ws/install/go2_mission/share/ament_index/resource_index\n'}
+[11.960268] (go2_mission) StdoutLine: {'line': b'creating /home/unitree/go/Go2Robot/ros_ws/install/go2_mission/share/ament_index/resource_index/packages\n'}
+[11.960382] (go2_bridge) StdoutLine: {'line': b'creating /home/unitree/go/Go2Robot/ros_ws/install/go2_bridge/share/ament_index\n'}
+[11.960493] (go2_mission) StdoutLine: {'line': b'copying resource/go2_mission -> /home/unitree/go/Go2Robot/ros_ws/install/go2_mission/share/ament_index/resource_index/packages\n'}
+[11.960604] (go2_bridge) StdoutLine: {'line': b'creating /home/unitree/go/Go2Robot/ros_ws/install/go2_bridge/share/ament_index/resource_index\n'}
+[11.960712] (go2_bridge) StdoutLine: {'line': b'creating /home/unitree/go/Go2Robot/ros_ws/install/go2_bridge/share/ament_index/resource_index/packages\n'}
+[11.960819] (go2_bridge) StdoutLine: {'line': b'copying resource/go2_bridge -> /home/unitree/go/Go2Robot/ros_ws/install/go2_bridge/share/ament_index/resource_index/packages\n'}
+[11.960923] (go2_mission) StdoutLine: {'line': b'copying package.xml -> /home/unitree/go/Go2Robot/ros_ws/install/go2_mission/share/go2_mission\n'}
+[11.961029] (go2_bridge) StdoutLine: {'line': b'copying package.xml -> /home/unitree/go/Go2Robot/ros_ws/install/go2_bridge/share/go2_bridge\n'}
+[11.963886] (-) TimerEvent: {}
+[12.045477] (go2_mission) CommandEnded: {'returncode': 0}
+[12.064396] (-) TimerEvent: {}
+[12.166551] (-) TimerEvent: {}
+[12.267086] (-) TimerEvent: {}
+[12.367915] (-) TimerEvent: {}
+[12.378426] (go2_mission) JobEnded: {'identifier': 'go2_mission', 'rc': 0}
+[12.379096] (go2_bridge) CommandEnded: {'returncode': 0}
+[12.468023] (-) TimerEvent: {}
+[12.568891] (-) TimerEvent: {}
+[12.657195] (go2_bridge) JobEnded: {'identifier': 'go2_bridge', 'rc': 0}
+[12.658514] (-) EventReactorShutdown: {}

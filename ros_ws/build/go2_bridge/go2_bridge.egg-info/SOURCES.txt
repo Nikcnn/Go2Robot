@@ -1,0 +1,17 @@
+package.xml
+setup.cfg
+setup.py
+go2_bridge/__init__.py
+go2_bridge/base_bridge.py
+go2_bridge/camera_bridge.py
+go2_bridge/lidar_bridge.py
+go2_bridge/pointcloud_utils.py
+go2_bridge/unitree_lidar.py
+go2_bridge.egg-info/PKG-INFO
+go2_bridge.egg-info/SOURCES.txt
+go2_bridge.egg-info/dependency_links.txt
+go2_bridge.egg-info/entry_points.txt
+go2_bridge.egg-info/requires.txt
+go2_bridge.egg-info/top_level.txt
+go2_bridge.egg-info/zip-safe
+resource/go2_bridge

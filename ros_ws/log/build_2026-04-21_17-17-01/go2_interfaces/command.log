@@ -1,0 +1,4 @@
+Invoking command in '/home/unitree/go/Go2Robot/ros_ws/build/go2_interfaces': /usr/bin/cmake --build /home/unitree/go/Go2Robot/ros_ws/build/go2_interfaces -- -j4 -l4
+Invoked command in '/home/unitree/go/Go2Robot/ros_ws/build/go2_interfaces' returned '0': /usr/bin/cmake --build /home/unitree/go/Go2Robot/ros_ws/build/go2_interfaces -- -j4 -l4
+Invoking command in '/home/unitree/go/Go2Robot/ros_ws/build/go2_interfaces': /usr/bin/cmake --install /home/unitree/go/Go2Robot/ros_ws/build/go2_interfaces
+Invoked command in '/home/unitree/go/Go2Robot/ros_ws/build/go2_interfaces' returned '0': /usr/bin/cmake --install /home/unitree/go/Go2Robot/ros_ws/build/go2_interfaces

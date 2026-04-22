@@ -1,0 +1,205 @@
+[  2%] [34m[1mGenerating C code for ROS interfaces[0m
+[35m[1mScanning dependencies of target go2_interfaces__cpp[0m
+[  5%] [34m[1mGenerating C++ code for ROS interfaces[0m
+[  5%] Built target go2_interfaces__cpp
+[ 12%] [34m[1mGenerating C++ type support dispatch for ROS interfaces[0m
+[ 12%] [34m[1mGenerating C++ type support for eProsima Fast-RTPS[0m
+[35m[1mScanning dependencies of target go2_interfaces__rosidl_generator_c[0m
+[ 12%] [34m[1mGenerating C++ introspection for ROS interfaces[0m
+[ 15%] [32mBuilding C object CMakeFiles/go2_interfaces__rosidl_generator_c.dir/rosidl_generator_c/go2_interfaces/srv/detail/checkpoint_capture__functions.c.o[0m
+[ 17%] [32mBuilding C object CMakeFiles/go2_interfaces__rosidl_generator_c.dir/rosidl_generator_c/go2_interfaces/srv/detail/mission_control__functions.c.o[0m
+[ 20%] [32m[1mLinking C shared library libgo2_interfaces__rosidl_generator_c.so[0m
+[ 20%] Built target go2_interfaces__rosidl_generator_c
+[ 23%] [34m[1mGenerating C introspection for ROS interfaces[0m
+[35m[1mScanning dependencies of target go2_interfaces__rosidl_typesupport_cpp[0m
+[ 25%] [32mBuilding CXX object CMakeFiles/go2_interfaces__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/go2_interfaces/srv/checkpoint_capture__type_support.cpp.o[0m
+[35m[1mScanning dependencies of target go2_interfaces__rosidl_typesupport_introspection_cpp[0m
+[ 28%] [32mBuilding CXX object CMakeFiles/go2_interfaces__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/go2_interfaces/srv/detail/checkpoint_capture__type_support.cpp.o[0m
+[35m[1mScanning dependencies of target go2_interfaces__rosidl_typesupport_fastrtps_cpp[0m
+[ 30%] [32mBuilding CXX object CMakeFiles/go2_interfaces__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/go2_interfaces/srv/detail/dds_fastrtps/checkpoint_capture__type_support.cpp.o[0m
+[35m[1mScanning dependencies of target go2_interfaces__rosidl_typesupport_introspection_c[0m
+[ 33%] [32mBuilding C object CMakeFiles/go2_interfaces__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/go2_interfaces/srv/detail/checkpoint_capture__type_support.c.o[0m
+[ 35%] [32mBuilding C object CMakeFiles/go2_interfaces__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/go2_interfaces/srv/detail/mission_control__type_support.c.o[0m
+[ 38%] [32mBuilding CXX object CMakeFiles/go2_interfaces__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/go2_interfaces/srv/mission_control__type_support.cpp.o[0m
+[ 41%] [32m[1mLinking C shared library libgo2_interfaces__rosidl_typesupport_introspection_c.so[0m
+[ 41%] Built target go2_interfaces__rosidl_typesupport_introspection_c
+[ 43%] [32mBuilding CXX object CMakeFiles/go2_interfaces__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/go2_interfaces/srv/detail/dds_fastrtps/mission_control__type_support.cpp.o[0m
+[ 46%] [32mBuilding CXX object CMakeFiles/go2_interfaces__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/go2_interfaces/srv/detail/mission_control__type_support.cpp.o[0m
+[ 48%] [34m[1mGenerating C type support dispatch for ROS interfaces[0m
+[ 51%] [32m[1mLinking CXX shared library libgo2_interfaces__rosidl_typesupport_cpp.so[0m
+[ 51%] Built target go2_interfaces__rosidl_typesupport_cpp
+[ 53%] [32m[1mLinking CXX shared library libgo2_interfaces__rosidl_typesupport_introspection_cpp.so[0m
+[ 53%] Built target go2_interfaces__rosidl_typesupport_introspection_cpp
+[35m[1mScanning dependencies of target go2_interfaces__rosidl_typesupport_c[0m
+[ 56%] [32m[1mLinking CXX shared library libgo2_interfaces__rosidl_typesupport_fastrtps_cpp.so[0m
+[ 61%] [32mBuilding CXX object CMakeFiles/go2_interfaces__rosidl_typesupport_c.dir/rosidl_typesupport_c/go2_interfaces/srv/mission_control__type_support.cpp.o[0m
+[ 61%] [32mBuilding CXX object CMakeFiles/go2_interfaces__rosidl_typesupport_c.dir/rosidl_typesupport_c/go2_interfaces/srv/checkpoint_capture__type_support.cpp.o[0m
+[ 64%] [32m[1mLinking CXX shared library libgo2_interfaces__rosidl_typesupport_c.so[0m
+[ 64%] Built target go2_interfaces__rosidl_typesupport_c
+[ 64%] Built target go2_interfaces__rosidl_typesupport_fastrtps_cpp
+[ 66%] [34m[1mGenerating C type support for eProsima Fast-RTPS[0m
+[35m[1mScanning dependencies of target go2_interfaces__rosidl_typesupport_fastrtps_c[0m
+[ 71%] [32mBuilding CXX object CMakeFiles/go2_interfaces__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/go2_interfaces/srv/detail/mission_control__type_support_c.cpp.o[0m
+[ 71%] [32mBuilding CXX object CMakeFiles/go2_interfaces__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/go2_interfaces/srv/detail/checkpoint_capture__type_support_c.cpp.o[0m
+[ 74%] [32m[1mLinking CXX shared library libgo2_interfaces__rosidl_typesupport_fastrtps_c.so[0m
+[ 74%] Built target go2_interfaces__rosidl_typesupport_fastrtps_c
+[35m[1mScanning dependencies of target go2_interfaces[0m
+[ 74%] Built target go2_interfaces
+[35m[1mScanning dependencies of target go2_interfaces__py[0m
+[ 76%] [34m[1mGenerating Python code for ROS interfaces[0m
+[ 76%] Built target go2_interfaces__py
+[35m[1mScanning dependencies of target go2_interfaces__python[0m
+[ 82%] [32mBuilding C object CMakeFiles/go2_interfaces__python.dir/rosidl_generator_py/go2_interfaces/srv/_mission_control_s.c.o[0m
+[ 82%] [32mBuilding C object CMakeFiles/go2_interfaces__python.dir/rosidl_generator_py/go2_interfaces/srv/_checkpoint_capture_s.c.o[0m
+[ 84%] [32m[1mLinking C shared library rosidl_generator_py/go2_interfaces/libgo2_interfaces__python.so[0m
+[ 84%] Built target go2_interfaces__python
+[35m[1mScanning dependencies of target go2_interfaces__rosidl_typesupport_c__pyext[0m
+[35m[1mScanning dependencies of target go2_interfaces__rosidl_typesupport_introspection_c__pyext[0m
+[35m[1mScanning dependencies of target go2_interfaces__rosidl_typesupport_fastrtps_c__pyext[0m
+[ 89%] [32mBuilding C object CMakeFiles/go2_interfaces__rosidl_typesupport_introspection_c__pyext.dir/rosidl_generator_py/go2_interfaces/_go2_interfaces_s.ep.rosidl_typesupport_introspection_c.c.o[0m
+[ 89%] [32mBuilding C object CMakeFiles/go2_interfaces__rosidl_typesupport_c__pyext.dir/rosidl_generator_py/go2_interfaces/_go2_interfaces_s.ep.rosidl_typesupport_c.c.o[0m
+[ 92%] [32mBuilding C object CMakeFiles/go2_interfaces__rosidl_typesupport_fastrtps_c__pyext.dir/rosidl_generator_py/go2_interfaces/_go2_interfaces_s.ep.rosidl_typesupport_fastrtps_c.c.o[0m
+[ 94%] [32m[1mLinking C shared library rosidl_generator_py/go2_interfaces/go2_interfaces_s__rosidl_typesupport_c.cpython-38-aarch64-linux-gnu.so[0m
+[ 97%] [32m[1mLinking C shared library rosidl_generator_py/go2_interfaces/go2_interfaces_s__rosidl_typesupport_introspection_c.cpython-38-aarch64-linux-gnu.so[0m
+[100%] [32m[1mLinking CXX shared library rosidl_generator_py/go2_interfaces/go2_interfaces_s__rosidl_typesupport_fastrtps_c.cpython-38-aarch64-linux-gnu.so[0m
+[100%] Built target go2_interfaces__rosidl_typesupport_introspection_c__pyext
+[100%] Built target go2_interfaces__rosidl_typesupport_c__pyext
+[100%] Built target go2_interfaces__rosidl_typesupport_fastrtps_c__pyext
+-- Install configuration: ""
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/ament_index/resource_index/rosidl_interfaces/go2_interfaces
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/mission_control.h
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/checkpoint_capture.h
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/checkpoint_capture__type_support.h
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/checkpoint_capture__functions.h
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/mission_control__functions.c
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/mission_control__struct.h
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/checkpoint_capture__struct.h
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/mission_control__functions.h
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/checkpoint_capture__functions.c
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/mission_control__type_support.h
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/msg
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/msg/rosidl_generator_c__visibility_control.h
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/environment/library_path.sh
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/environment/library_path.dsv
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__rosidl_generator_c.so
+-- Set runtime path of "/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__rosidl_generator_c.so" to ""
+-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces
+-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv
+-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/checkpoint_capture__rosidl_typesupport_fastrtps_c.h
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/mission_control__rosidl_typesupport_fastrtps_c.h
+-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/msg
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/msg/rosidl_typesupport_fastrtps_c__visibility_control.h
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__rosidl_typesupport_fastrtps_c.so
+-- Set runtime path of "/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__rosidl_typesupport_fastrtps_c.so" to ""
+-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces
+-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv
+-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/mission_control__rosidl_typesupport_fastrtps_cpp.hpp
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/checkpoint_capture__rosidl_typesupport_fastrtps_cpp.hpp
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/dds_fastrtps
+-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/msg
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/msg/rosidl_typesupport_fastrtps_cpp__visibility_control.h
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__rosidl_typesupport_fastrtps_cpp.so
+-- Set runtime path of "/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__rosidl_typesupport_fastrtps_cpp.so" to ""
+-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces
+-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv
+-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/mission_control__rosidl_typesupport_introspection_c.h
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/checkpoint_capture__rosidl_typesupport_introspection_c.h
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/mission_control__type_support.c
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/checkpoint_capture__type_support.c
+-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/msg
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/msg/rosidl_typesupport_introspection_c__visibility_control.h
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__rosidl_typesupport_introspection_c.so
+-- Set runtime path of "/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__rosidl_typesupport_introspection_c.so" to ""
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__rosidl_typesupport_c.so
+-- Set runtime path of "/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__rosidl_typesupport_c.so" to ""
+-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces
+-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/mission_control.hpp
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/checkpoint_capture.hpp
+-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/mission_control__type_support.hpp
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/checkpoint_capture__builder.hpp
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/mission_control__traits.hpp
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/mission_control__struct.hpp
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/checkpoint_capture__traits.hpp
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/mission_control__builder.hpp
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/checkpoint_capture__struct.hpp
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/checkpoint_capture__type_support.hpp
+-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/msg
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/msg/rosidl_generator_cpp__visibility_control.hpp
+-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces
+-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv
+-- Up-to-date: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/checkpoint_capture__rosidl_typesupport_introspection_cpp.hpp
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/mission_control__type_support.cpp
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/mission_control__rosidl_typesupport_introspection_cpp.hpp
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/include/go2_interfaces/srv/detail/checkpoint_capture__type_support.cpp
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__rosidl_typesupport_introspection_cpp.so
+-- Set runtime path of "/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__rosidl_typesupport_introspection_cpp.so" to ""
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__rosidl_typesupport_cpp.so
+-- Set runtime path of "/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__rosidl_typesupport_cpp.so" to ""
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/environment/pythonpath.sh
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/environment/pythonpath.dsv
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages/go2_interfaces/__init__.py
+Compiling '/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages/go2_interfaces/__init__.py'...
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages/go2_interfaces/srv
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages/go2_interfaces/srv/_checkpoint_capture.py
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages/go2_interfaces/srv/_checkpoint_capture_s.c
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages/go2_interfaces/srv/_mission_control_s.c
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages/go2_interfaces/srv/_mission_control.py
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages/go2_interfaces/srv/__init__.py
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages/go2_interfaces/go2_interfaces_s__rosidl_typesupport_fastrtps_c.cpython-38-aarch64-linux-gnu.so
+-- Set runtime path of "/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages/go2_interfaces/go2_interfaces_s__rosidl_typesupport_fastrtps_c.cpython-38-aarch64-linux-gnu.so" to ""
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages/go2_interfaces/go2_interfaces_s__rosidl_typesupport_introspection_c.cpython-38-aarch64-linux-gnu.so
+-- Set runtime path of "/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages/go2_interfaces/go2_interfaces_s__rosidl_typesupport_introspection_c.cpython-38-aarch64-linux-gnu.so" to ""
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages/go2_interfaces/go2_interfaces_s__rosidl_typesupport_c.cpython-38-aarch64-linux-gnu.so
+-- Set runtime path of "/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages/go2_interfaces/go2_interfaces_s__rosidl_typesupport_c.cpython-38-aarch64-linux-gnu.so" to ""
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__python.so
+-- Set runtime path of "/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/libgo2_interfaces__python.so" to ""
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/srv/CheckpointCapture.idl
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/srv/MissionControl.idl
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/srv/CheckpointCapture.srv
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/srv/CheckpointCapture_Request.msg
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/srv/CheckpointCapture_Response.msg
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/srv/MissionControl.srv
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/srv/MissionControl_Request.msg
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/srv/MissionControl_Response.msg
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/ament_index/resource_index/package_run_dependencies/go2_interfaces
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/ament_index/resource_index/parent_prefix_path/go2_interfaces
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/environment/ament_prefix_path.sh
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/environment/ament_prefix_path.dsv
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/environment/path.sh
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/environment/path.dsv
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/local_setup.bash
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/local_setup.sh
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/local_setup.zsh
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/local_setup.dsv
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/package.dsv
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/ament_index/resource_index/packages/go2_interfaces
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/go2_interfaces__rosidl_generator_cExport.cmake
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/go2_interfaces__rosidl_generator_cExport-noconfig.cmake
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/go2_interfaces__rosidl_typesupport_introspection_cExport.cmake
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/go2_interfaces__rosidl_typesupport_introspection_cExport-noconfig.cmake
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/go2_interfaces__rosidl_typesupport_cExport.cmake
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/go2_interfaces__rosidl_typesupport_cExport-noconfig.cmake
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/go2_interfaces__rosidl_generator_cppExport.cmake
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/go2_interfaces__rosidl_typesupport_introspection_cppExport.cmake
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/go2_interfaces__rosidl_typesupport_introspection_cppExport-noconfig.cmake
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/go2_interfaces__rosidl_typesupport_cppExport.cmake
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/go2_interfaces__rosidl_typesupport_cppExport-noconfig.cmake
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/rosidl_cmake-extras.cmake
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/ament_cmake_export_dependencies-extras.cmake
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/ament_cmake_export_libraries-extras.cmake
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/ament_cmake_export_targets-extras.cmake
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/ament_cmake_export_include_directories-extras.cmake
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/rosidl_cmake_export_typesupport_libraries-extras.cmake
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/rosidl_cmake_export_typesupport_targets-extras.cmake
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/go2_interfacesConfig.cmake
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/cmake/go2_interfacesConfig-version.cmake
+-- Installing: /home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share/go2_interfaces/package.xml

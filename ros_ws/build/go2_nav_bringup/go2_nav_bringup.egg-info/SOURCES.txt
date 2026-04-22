@@ -1,0 +1,14 @@
+package.xml
+setup.cfg
+setup.py
+go2_nav_bringup.egg-info/PKG-INFO
+go2_nav_bringup.egg-info/SOURCES.txt
+go2_nav_bringup.egg-info/dependency_links.txt
+go2_nav_bringup.egg-info/requires.txt
+go2_nav_bringup.egg-info/top_level.txt
+go2_nav_bringup.egg-info/zip-safe
+launch/mapping.launch.py
+launch/navigation.launch.py
+params/nav2_params.yaml
+resource/go2_nav_bringup
+rviz/go2_nav.rviz

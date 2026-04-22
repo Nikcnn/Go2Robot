@@ -1,6 +1,6 @@
 robot:
   mode: go2
-  interface_name: enp0s20f0u1c2
+  interface_name: eth0
   camera_enabled: true
   max_vx: 1
   max_vyaw: 1.0

@@ -1,0 +1,31 @@
+[1.701s] Invoking command in '/home/unitree/go/Go2Robot/ros_ws/build/go2_nav_bringup': PYTHONPATH=/home/unitree/go/Go2Robot/ros_ws/build/go2_nav_bringup/prefix_override:/home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/lib/python3.8/site-packages:${PYTHONPATH} /usr/bin/python3 setup.py develop --editable --build-directory /home/unitree/go/Go2Robot/ros_ws/build/go2_nav_bringup/build --no-deps install_data
+[2.117s] running develop
+[2.363s] running egg_info
+[2.363s] creating go2_nav_bringup.egg-info
+[2.363s] writing go2_nav_bringup.egg-info/PKG-INFO
+[2.363s] writing dependency_links to go2_nav_bringup.egg-info/dependency_links.txt
+[2.364s] writing requirements to go2_nav_bringup.egg-info/requires.txt
+[2.364s] writing top-level names to go2_nav_bringup.egg-info/top_level.txt
+[2.366s] writing manifest file 'go2_nav_bringup.egg-info/SOURCES.txt'
+[2.367s] reading manifest file 'go2_nav_bringup.egg-info/SOURCES.txt'
+[2.368s] writing manifest file 'go2_nav_bringup.egg-info/SOURCES.txt'
+[2.428s] running build_ext
+[2.478s] Creating /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/lib/python3.8/site-packages/site.py
+[2.482s] Creating /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/lib/python3.8/site-packages/go2-nav-bringup.egg-link (link to .)
+[2.483s] 
+[2.483s] Installed /home/unitree/go/Go2Robot/ros_ws/build/go2_nav_bringup
+[2.484s] running install_data
+[2.484s] creating /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/share/ament_index
+[2.484s] creating /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/share/ament_index/resource_index
+[2.484s] creating /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/share/ament_index/resource_index/packages
+[2.484s] copying resource/go2_nav_bringup -> /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/share/ament_index/resource_index/packages
+[2.484s] copying package.xml -> /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/share/go2_nav_bringup
+[2.484s] creating /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/share/go2_nav_bringup/launch
+[2.485s] copying launch/navigation.launch.py -> /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/share/go2_nav_bringup/launch
+[2.485s] copying launch/mapping.launch.py -> /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/share/go2_nav_bringup/launch
+[2.485s] creating /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/share/go2_nav_bringup/params
+[2.485s] copying params/nav2_params.yaml -> /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/share/go2_nav_bringup/params
+[2.485s] creating /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/share/go2_nav_bringup/rviz
+[2.486s] copying rviz/go2_nav.rviz -> /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/share/go2_nav_bringup/rviz
+[2.486s] creating /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/share/go2_nav_bringup/maps
+[2.556s] Invoked command in '/home/unitree/go/Go2Robot/ros_ws/build/go2_nav_bringup' returned '0': PYTHONPATH=/home/unitree/go/Go2Robot/ros_ws/build/go2_nav_bringup/prefix_override:/home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/lib/python3.8/site-packages:${PYTHONPATH} /usr/bin/python3 setup.py develop --editable --build-directory /home/unitree/go/Go2Robot/ros_ws/build/go2_nav_bringup/build --no-deps install_data

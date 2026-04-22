@@ -1,0 +1,5 @@
+[console_scripts]
+base_bridge = go2_bridge.base_bridge:main
+camera_bridge = go2_bridge.camera_bridge:main
+lidar_bridge = go2_bridge.lidar_bridge:main
+

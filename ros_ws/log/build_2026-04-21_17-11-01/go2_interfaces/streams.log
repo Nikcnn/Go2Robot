@@ -1,0 +1,46 @@
+[0.234s] Invoking command in '/home/unitree/go/Go2Robot/ros_ws/build/go2_interfaces': /usr/bin/cmake /home/unitree/go/Go2Robot/ros_ws/src/go2_interfaces -DCMAKE_INSTALL_PREFIX=/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces
+[0.333s] -- The C compiler identification is GNU 9.4.0
+[0.457s] -- The CXX compiler identification is GNU 9.4.0
+[0.467s] -- Check for working C compiler: /usr/bin/cc
+[0.593s] -- Check for working C compiler: /usr/bin/cc -- works
+[0.595s] -- Detecting C compiler ABI info
+[0.722s] -- Detecting C compiler ABI info - done
+[0.755s] -- Detecting C compile features
+[0.756s] -- Detecting C compile features - done
+[0.762s] -- Check for working CXX compiler: /usr/bin/c++
+[0.904s] -- Check for working CXX compiler: /usr/bin/c++ -- works
+[0.907s] -- Detecting CXX compiler ABI info
+[1.056s] -- Detecting CXX compiler ABI info - done
+[1.091s] -- Detecting CXX compile features
+[1.092s] -- Detecting CXX compile features - done
+[1.103s] -- Found ament_cmake: 0.9.12 (/opt/ros/foxy/share/ament_cmake/cmake)
+[1.149s] -- Found PythonInterp: /usr/bin/python3 (found suitable version "3.8.10", minimum required is "3") 
+[1.150s] -- Using PYTHON_EXECUTABLE: /usr/bin/python3
+[1.572s] -- Found rosidl_default_generators: 1.0.1 (/opt/ros/foxy/share/rosidl_default_generators/cmake)
+[1.578s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[1.592s] -- Found rosidl_adapter: 1.3.1 (/opt/ros/foxy/share/rosidl_adapter/cmake)
+[1.774s] -- Found OpenSSL: /usr/lib/aarch64-linux-gnu/libcrypto.so (found version "1.1.1f")  
+[1.830s] -- Found FastRTPS: /opt/ros/foxy/include  
+[1.978s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[2.066s] -- Found PythonInterp: /usr/bin/python3 (found version "3.8.10") 
+[2.190s] CMake Error: File /home/unitree/go/Go2Robot/ros_ws/src/go2_interfaces/package.xml does not exist.
+[2.191s] CMake Error at /opt/ros/foxy/share/ament_cmake_core/cmake/core/stamp.cmake:24 (configure_file):
+[2.191s]   configure_file Problem configuring file
+[2.191s] Call Stack (most recent call first):
+[2.191s]   /opt/ros/foxy/share/ament_cmake_core/cmake/core/ament_package_xml.cmake:73 (stamp)
+[2.191s]   /opt/ros/foxy/share/ament_cmake_core/cmake/core/ament_package_xml.cmake:49 (_ament_package_xml)
+[2.191s]   /opt/ros/foxy/share/rosidl_cmake/cmake/rosidl_generate_interfaces.cmake:226 (ament_package_xml)
+[2.191s]   CMakeLists.txt:11 (rosidl_generate_interfaces)
+[2.191s] 
+[2.192s] 
+[2.192s] CMake Error at /opt/ros/foxy/share/rosidl_cmake/cmake/rosidl_generate_interfaces.cmake:229 (message):
+[2.192s]   Packages installing interfaces must include
+[2.192s]   '<member_of_group>rosidl_interface_packages</member_of_group>' in their
+[2.192s]   package.xml
+[2.192s] Call Stack (most recent call first):
+[2.192s]   CMakeLists.txt:11 (rosidl_generate_interfaces)
+[2.192s] 
+[2.192s] 
+[2.193s] -- Configuring incomplete, errors occurred!
+[2.193s] See also "/home/unitree/go/Go2Robot/ros_ws/build/go2_interfaces/CMakeFiles/CMakeOutput.log".
+[2.211s] Invoked command in '/home/unitree/go/Go2Robot/ros_ws/build/go2_interfaces' returned '1': /usr/bin/cmake /home/unitree/go/Go2Robot/ros_ws/src/go2_interfaces -DCMAKE_INSTALL_PREFIX=/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces

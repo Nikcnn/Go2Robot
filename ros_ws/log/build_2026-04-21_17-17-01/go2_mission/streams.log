@@ -1,0 +1,26 @@
+[2.405s] Invoking command in '/home/unitree/go/Go2Robot/ros_ws/build/go2_mission': CMAKE_PREFIX_PATH=/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces LD_LIBRARY_PATH=/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib:${LD_LIBRARY_PATH} PKG_CONFIG_PATH=/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/aarch64-linux-gnu/pkgconfig:/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/pkgconfig:${PKG_CONFIG_PATH} PYTHONPATH=/home/unitree/go/Go2Robot/ros_ws/build/go2_mission/prefix_override:/home/unitree/go/Go2Robot/ros_ws/install/go2_mission/lib/python3.8/site-packages:/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages:${PYTHONPATH} ROS_PACKAGE_PATH=/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share /usr/bin/python3 setup.py develop --editable --build-directory /home/unitree/go/Go2Robot/ros_ws/build/go2_mission/build --no-deps install_data
+[2.836s] running develop
+[3.093s] running egg_info
+[3.094s] creating go2_mission.egg-info
+[3.094s] writing go2_mission.egg-info/PKG-INFO
+[3.097s] writing dependency_links to go2_mission.egg-info/dependency_links.txt
+[3.097s] writing entry points to go2_mission.egg-info/entry_points.txt
+[3.097s] writing requirements to go2_mission.egg-info/requires.txt
+[3.098s] writing top-level names to go2_mission.egg-info/top_level.txt
+[3.101s] writing manifest file 'go2_mission.egg-info/SOURCES.txt'
+[3.155s] reading manifest file 'go2_mission.egg-info/SOURCES.txt'
+[3.156s] writing manifest file 'go2_mission.egg-info/SOURCES.txt'
+[3.220s] running build_ext
+[3.220s] Creating /home/unitree/go/Go2Robot/ros_ws/install/go2_mission/lib/python3.8/site-packages/site.py
+[3.224s] Creating /home/unitree/go/Go2Robot/ros_ws/install/go2_mission/lib/python3.8/site-packages/go2-mission.egg-link (link to .)
+[3.226s] Installing mission_api_node script to /home/unitree/go/Go2Robot/ros_ws/install/go2_mission/lib/go2_mission
+[3.226s] Installing mission_executor script to /home/unitree/go/Go2Robot/ros_ws/install/go2_mission/lib/go2_mission
+[3.227s] 
+[3.227s] Installed /home/unitree/go/Go2Robot/ros_ws/build/go2_mission
+[3.227s] running install_data
+[3.227s] creating /home/unitree/go/Go2Robot/ros_ws/install/go2_mission/share/ament_index
+[3.228s] creating /home/unitree/go/Go2Robot/ros_ws/install/go2_mission/share/ament_index/resource_index
+[3.228s] creating /home/unitree/go/Go2Robot/ros_ws/install/go2_mission/share/ament_index/resource_index/packages
+[3.228s] copying resource/go2_mission -> /home/unitree/go/Go2Robot/ros_ws/install/go2_mission/share/ament_index/resource_index/packages
+[3.229s] copying package.xml -> /home/unitree/go/Go2Robot/ros_ws/install/go2_mission/share/go2_mission
+[3.314s] Invoked command in '/home/unitree/go/Go2Robot/ros_ws/build/go2_mission' returned '0': CMAKE_PREFIX_PATH=/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces LD_LIBRARY_PATH=/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib:${LD_LIBRARY_PATH} PKG_CONFIG_PATH=/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/aarch64-linux-gnu/pkgconfig:/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/pkgconfig:${PKG_CONFIG_PATH} PYTHONPATH=/home/unitree/go/Go2Robot/ros_ws/build/go2_mission/prefix_override:/home/unitree/go/Go2Robot/ros_ws/install/go2_mission/lib/python3.8/site-packages:/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/lib/python3.8/site-packages:${PYTHONPATH} ROS_PACKAGE_PATH=/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces/share /usr/bin/python3 setup.py develop --editable --build-directory /home/unitree/go/Go2Robot/ros_ws/build/go2_mission/build --no-deps install_data

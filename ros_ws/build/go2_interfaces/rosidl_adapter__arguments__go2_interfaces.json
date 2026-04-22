@@ -1,0 +1,7 @@
+{
+  "package_name": "go2_interfaces",
+  "non_idl_tuples": [
+    "/home/unitree/go/Go2Robot/ros_ws/src/go2_interfaces:srv/CheckpointCapture.srv",
+    "/home/unitree/go/Go2Robot/ros_ws/src/go2_interfaces:srv/MissionControl.srv"
+  ]
+}

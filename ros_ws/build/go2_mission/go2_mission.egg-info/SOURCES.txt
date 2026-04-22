@@ -1,0 +1,14 @@
+package.xml
+setup.cfg
+setup.py
+go2_mission/__init__.py
+go2_mission/checkpoint_tasks.py
+go2_mission/mission_api_node.py
+go2_mission.egg-info/PKG-INFO
+go2_mission.egg-info/SOURCES.txt
+go2_mission.egg-info/dependency_links.txt
+go2_mission.egg-info/entry_points.txt
+go2_mission.egg-info/requires.txt
+go2_mission.egg-info/top_level.txt
+go2_mission.egg-info/zip-safe
+resource/go2_mission

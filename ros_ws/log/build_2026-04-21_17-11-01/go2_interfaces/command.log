@@ -1,0 +1,2 @@
+Invoking command in '/home/unitree/go/Go2Robot/ros_ws/build/go2_interfaces': /usr/bin/cmake /home/unitree/go/Go2Robot/ros_ws/src/go2_interfaces -DCMAKE_INSTALL_PREFIX=/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces
+Invoked command in '/home/unitree/go/Go2Robot/ros_ws/build/go2_interfaces' returned '1': /usr/bin/cmake /home/unitree/go/Go2Robot/ros_ws/src/go2_interfaces -DCMAKE_INSTALL_PREFIX=/home/unitree/go/Go2Robot/ros_ws/install/go2_interfaces

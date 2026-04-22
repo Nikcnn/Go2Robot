@@ -1,0 +1,4 @@
+[console_scripts]
+mission_api_node = go2_mission.mission_api_node:main
+mission_executor = go2_mission.mission_executor:main
+

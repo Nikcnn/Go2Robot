@@ -1,0 +1,8 @@
+srv/CheckpointCapture.idl
+srv/CheckpointCapture.srv
+srv/CheckpointCapture_Request.msg
+srv/CheckpointCapture_Response.msg
+srv/MissionControl.idl
+srv/MissionControl.srv
+srv/MissionControl_Request.msg
+srv/MissionControl_Response.msg

@@ -1,0 +1,67 @@
+[0.000000] (-) TimerEvent: {}
+[0.000337] (-) JobUnselected: {'identifier': 'go2_bridge'}
+[0.000521] (-) JobUnselected: {'identifier': 'go2_interfaces'}
+[0.000796] (-) JobUnselected: {'identifier': 'go2_mission'}
+[0.000957] (go2_nav_bringup) JobQueued: {'identifier': 'go2_nav_bringup', 'dependencies': OrderedDict()}
+[0.001304] (go2_nav_bringup) JobStarted: {'identifier': 'go2_nav_bringup'}
+[0.099628] (-) TimerEvent: {}
+[0.200603] (-) TimerEvent: {}
+[0.301303] (-) TimerEvent: {}
+[0.402463] (-) TimerEvent: {}
+[0.503204] (-) TimerEvent: {}
+[0.603780] (-) TimerEvent: {}
+[0.704394] (-) TimerEvent: {}
+[0.805100] (-) TimerEvent: {}
+[0.905934] (-) TimerEvent: {}
+[1.006739] (-) TimerEvent: {}
+[1.107417] (-) TimerEvent: {}
+[1.207896] (-) TimerEvent: {}
+[1.308635] (-) TimerEvent: {}
+[1.409222] (-) TimerEvent: {}
+[1.509992] (-) TimerEvent: {}
+[1.610590] (-) TimerEvent: {}
+[1.700625] (go2_nav_bringup) Command: {'cmd': ['/usr/bin/python3', 'setup.py', 'develop', '--editable', '--build-directory', '/home/unitree/go/Go2Robot/ros_ws/build/go2_nav_bringup/build', '--no-deps', 'install_data'], 'cwd': '/home/unitree/go/Go2Robot/ros_ws/build/go2_nav_bringup', 'env': {'LESSOPEN': '| /usr/bin/lesspipe %s', 'USER': 'unitree', 'SSH_CLIENT': '192.168.123.222 35912 22', 'XDG_SESSION_TYPE': 'tty', 'SHLVL': '1', 'LD_LIBRARY_PATH': '/usr/local/cuda-11.4/lib64:/usr/local/lib:/home/unitree/cyclonedds_ws/install/rmw_cyclonedds_cpp/lib:/home/unitree/cyclonedds_ws/install/cyclonedds/lib:/opt/ros/foxy/opt/yaml_cpp_vendor/lib:/opt/ros/foxy/opt/rviz_ogre_vendor/lib:/opt/ros/foxy/lib/aarch64-linux-gnu:/opt/ros/foxy/lib', 'MOTD_SHOWN': 'pam', 'HOME': '/home/unitree', 'CYCLONEDDS_URI': '/home/unitree/cyclonedds_ws/cyclonedds.xml', 'OLDPWD': '/home/unitree/go/Go2Robot/ros_ws', 'SSH_TTY': '/dev/pts/0', 'ROS_PYTHON_VERSION': '3', 'DBUS_SESSION_BUS_ADDRESS': 'unix:path=/run/user/1000/bus', 'PYTHONNOUSERSITE': '1', 'ROS_DISTRO': 'foxy', 'LOGNAME': 'unitree', '_': '/usr/bin/colcon', 'ROS_VERSION': '2', 'PKG_CONFIG_PATH': '/home/unitree/cyclonedds_ws/install/cyclonedds/lib/aarch64-linux-gnu/pkgconfig:/home/unitree/cyclonedds_ws/install/cyclonedds/lib/pkgconfig', 'XDG_SESSION_CLASS': 'user', 'TERM': 'xterm-256color', 'XDG_SESSION_ID': '13', 'ROS_LOCALHOST_ONLY': '0', 'PATH': '/home/unitree/.local/bin:/usr/local/cuda-11.4/bin:/home/unitree/cyclonedds_ws/install/cyclonedds/bin:/opt/ros/foxy/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin', 'XDG_RUNTIME_DIR': '/run/user/1000', 'LANG': 'en_US.UTF-8', 'RMW_IMPLEMENTATION': 'rmw_cyclonedds_cpp', 'LS_COLORS': 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:', 'AMENT_PREFIX_PATH': '/opt/ros/foxy', 'SHELL': '/bin/bash', 'LESSCLOSE': '/usr/bin/lesspipe %s %s', 'PWD': '/home/unitree/go/Go2Robot/ros_ws/build/go2_nav_bringup', 'SSH_CONNECTION': '192.168.123.222 35912 192.168.123.18 22', 'XDG_DATA_DIRS': '/usr/local/share:/usr/share:/var/lib/snapd/desktop', 'PYTHONPATH': '/home/unitree/go/Go2Robot/ros_ws/build/go2_nav_bringup/prefix_override:/home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/lib/python3.8/site-packages:/opt/ros/foxy/lib/python3.8/site-packages', 'COLCON': '1'}, 'shell': False}
+[1.710901] (-) TimerEvent: {}
+[1.811799] (-) TimerEvent: {}
+[1.912373] (-) TimerEvent: {}
+[2.012909] (-) TimerEvent: {}
+[2.113442] (-) TimerEvent: {}
+[2.117839] (go2_nav_bringup) StdoutLine: {'line': b'running develop\n'}
+[2.213542] (-) TimerEvent: {}
+[2.314012] (-) TimerEvent: {}
+[2.363858] (go2_nav_bringup) StdoutLine: {'line': b'running egg_info\n'}
+[2.364222] (go2_nav_bringup) StdoutLine: {'line': b'creating go2_nav_bringup.egg-info\n'}
+[2.364423] (go2_nav_bringup) StdoutLine: {'line': b'writing go2_nav_bringup.egg-info/PKG-INFO\n'}
+[2.364798] (go2_nav_bringup) StdoutLine: {'line': b'writing dependency_links to go2_nav_bringup.egg-info/dependency_links.txt\n'}
+[2.365066] (go2_nav_bringup) StdoutLine: {'line': b'writing requirements to go2_nav_bringup.egg-info/requires.txt\n'}
+[2.365228] (go2_nav_bringup) StdoutLine: {'line': b'writing top-level names to go2_nav_bringup.egg-info/top_level.txt\n'}
+[2.367451] (go2_nav_bringup) StdoutLine: {'line': b"writing manifest file 'go2_nav_bringup.egg-info/SOURCES.txt'\n"}
+[2.368783] (go2_nav_bringup) StdoutLine: {'line': b"reading manifest file 'go2_nav_bringup.egg-info/SOURCES.txt'\n"}
+[2.369857] (go2_nav_bringup) StdoutLine: {'line': b"writing manifest file 'go2_nav_bringup.egg-info/SOURCES.txt'\n"}
+[2.414083] (-) TimerEvent: {}
+[2.429217] (go2_nav_bringup) StdoutLine: {'line': b'running build_ext\n'}
+[2.479617] (go2_nav_bringup) StdoutLine: {'line': b'Creating /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/lib/python3.8/site-packages/site.py\n'}
+[2.483159] (go2_nav_bringup) StdoutLine: {'line': b'Creating /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/lib/python3.8/site-packages/go2-nav-bringup.egg-link (link to .)\n'}
+[2.484699] (go2_nav_bringup) StdoutLine: {'line': b'\n'}
+[2.484874] (go2_nav_bringup) StdoutLine: {'line': b'Installed /home/unitree/go/Go2Robot/ros_ws/build/go2_nav_bringup\n'}
+[2.484999] (go2_nav_bringup) StdoutLine: {'line': b'running install_data\n'}
+[2.485173] (go2_nav_bringup) StdoutLine: {'line': b'creating /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/share/ament_index\n'}
+[2.485317] (go2_nav_bringup) StdoutLine: {'line': b'creating /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/share/ament_index/resource_index\n'}
+[2.485468] (go2_nav_bringup) StdoutLine: {'line': b'creating /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/share/ament_index/resource_index/packages\n'}
+[2.485586] (go2_nav_bringup) StdoutLine: {'line': b'copying resource/go2_nav_bringup -> /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/share/ament_index/resource_index/packages\n'}
+[2.485735] (go2_nav_bringup) StdoutLine: {'line': b'copying package.xml -> /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/share/go2_nav_bringup\n'}
+[2.485903] (go2_nav_bringup) StdoutLine: {'line': b'creating /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/share/go2_nav_bringup/launch\n'}
+[2.486063] (go2_nav_bringup) StdoutLine: {'line': b'copying launch/navigation.launch.py -> /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/share/go2_nav_bringup/launch\n'}
+[2.486288] (go2_nav_bringup) StdoutLine: {'line': b'copying launch/mapping.launch.py -> /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/share/go2_nav_bringup/launch\n'}
+[2.486533] (go2_nav_bringup) StdoutLine: {'line': b'creating /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/share/go2_nav_bringup/params\n'}
+[2.486689] (go2_nav_bringup) StdoutLine: {'line': b'copying params/nav2_params.yaml -> /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/share/go2_nav_bringup/params\n'}
+[2.486933] (go2_nav_bringup) StdoutLine: {'line': b'creating /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/share/go2_nav_bringup/rviz\n'}
+[2.487093] (go2_nav_bringup) StdoutLine: {'line': b'copying rviz/go2_nav.rviz -> /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/share/go2_nav_bringup/rviz\n'}
+[2.487296] (go2_nav_bringup) StdoutLine: {'line': b'creating /home/unitree/go/Go2Robot/ros_ws/install/go2_nav_bringup/share/go2_nav_bringup/maps\n'}
+[2.514214] (-) TimerEvent: {}
+[2.556678] (go2_nav_bringup) CommandEnded: {'returncode': 0}
+[2.614893] (-) TimerEvent: {}
+[2.715472] (-) TimerEvent: {}
+[2.816331] (-) TimerEvent: {}
+[2.868036] (go2_nav_bringup) JobEnded: {'identifier': 'go2_nav_bringup', 'rc': 0}
+[2.869714] (-) EventReactorShutdown: {}

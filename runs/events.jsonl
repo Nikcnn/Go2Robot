@@ -1,0 +1,8 @@
+{"ts": "2026-04-21T08:43:07.037816+00:00", "level": "error", "category": "connection", "event": "adapter_startup_failed", "message": "adapter_startup_failed", "details": {"error": "'NoneType' object has no attribute '_ref'", "mode": "go2"}}
+{"ts": "2026-04-21T08:43:07.038238+00:00", "level": "info", "category": "state_transition", "event": "mode_changed", "message": "estop", "details": {"from": "AUTO", "to": "ESTOP", "reason": "estop"}}
+{"ts": "2026-04-21T08:43:07.038386+00:00", "level": "error", "category": "state_transition", "event": "estop_latched", "message": "estop_latched", "details": {"mission_id": null}}
+{"ts": "2026-04-21T08:43:07.039874+00:00", "level": "info", "category": "connection", "event": "server_started", "message": "server_started", "details": {"adapter_mode": "go2", "adapter_ready": false}}
+{"ts": "2026-04-21T08:50:03.681094+00:00", "level": "info", "category": "connection", "event": "server_started", "message": "server_started", "details": {"adapter_mode": "go2", "adapter_ready": true}}
+{"ts": "2026-04-21T08:50:18.233519+00:00", "level": "info", "category": "state_transition", "event": "mode_changed", "message": "manual_take", "details": {"from": "AUTO", "to": "MANUAL", "reason": "manual_take"}}
+{"ts": "2026-04-21T08:50:25.655881+00:00", "level": "warn", "category": "fault", "event": "warning", "message": "manual teleop watchdog timeout", "details": {"message": "manual teleop watchdog timeout", "kind": "watchdog_timeout"}}
+{"ts": "2026-04-21T08:50:26.616189+00:00", "level": "warn", "category": "fault", "event": "warning", "message": "manual teleop watchdog timeout", "details": {"message": "manual teleop watchdog timeout", "kind": "watchdog_timeout"}}
