@@ -92,6 +92,7 @@ class MissionManager:
 
     def _run_mission(self, route: RouteModel) -> None:
         try:
+            self.adapter.ensure_motion_ready()
             self.control.mark_running()
             for step in route.steps:
                 if not self.control.wait_until_runnable():
@@ -174,7 +175,11 @@ class MissionManager:
         )
         self.event_callback(
             "checkpoint_processed",
-            {"waypoint_id": step.waypoint_id, "analyzer": analysis_result.get("analyzer"), "result": analysis_result.get("result")},
+            {
+                "waypoint_id": step.waypoint_id,
+                "analyzer": analysis_result.analyzer_name,
+                "result": analysis_result.label,
+            },
         )
         return True
 
@@ -196,7 +201,7 @@ class MissionManager:
             return str(candidate)
         return str((self.project_root / candidate).resolve())
 
-    def _capture_sensor_snapshots(self, waypoint_id: str) -> dict[str, dict]:
+    def _capture_sensor_snapshots(self, waypoint_id: str) -> Dict[str, Dict]:
         if self.realsense_camera is None or not self.realsense_camera.is_enabled():
             return {}
 

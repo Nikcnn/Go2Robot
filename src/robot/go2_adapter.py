@@ -49,6 +49,15 @@ _SPORT_MODE_LABELS = {
 }
 
 
+def _sdk_unavailable_message() -> str:
+    return (
+        "unitree_sdk2py is not installed. "
+        "Install with:\n"
+        "  git clone https://github.com/unitreerobotics/unitree_sdk2_python\n"
+        "  pip install -e unitree_sdk2_python"
+    )
+
+
 class Go2RobotAdapter:
     """Real Go2 adapter using unitree_sdk2py (DDS/CycloneDDS transport).
 
@@ -64,13 +73,6 @@ class Go2RobotAdapter:
         interface_name: Optional[str] = None,
         camera_enabled: bool = False,
     ) -> None:
-        if not SDK_AVAILABLE:
-            raise RuntimeError(
-                "unitree_sdk2py is not installed. "
-                "Install with:\n"
-                "  git clone https://github.com/unitreerobotics/unitree_sdk2_python\n"
-                "  pip install -e unitree_sdk2_python"
-            )
         self._interface_name = interface_name
         self._camera_enabled = camera_enabled
         self.capabilities = AdapterCapabilities(has_camera=camera_enabled, has_pose=True)
@@ -101,6 +103,9 @@ class Go2RobotAdapter:
 
     def connect(self) -> None:
         """Initialise DDS transport, subscribers, and sport client."""
+        if not SDK_AVAILABLE:
+            raise RuntimeError(_sdk_unavailable_message())
+
         ChannelFactory().Init(0, self._interface_name)
 
         self._state_sub = ChannelSubscriber(_SPORT_STATE_TOPIC, SportModeState_)

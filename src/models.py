@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Annotated, Literal, Optional, Union
+from typing import Literal, Optional, Union, List, Dict
 
 from pydantic import BaseModel, ConfigDict, Field
+from typing_extensions import Annotated
 
 
 class StrictModel(BaseModel):
@@ -57,7 +58,15 @@ class RobotState(StrictModel):
     battery_cycles: Optional[int] = None
     imu_yaw: Optional[float] = None
     camera_status: Optional[str] = None
-    faults: list[str] = Field(default_factory=list)
+    faults: List[str] = Field(default_factory=list)
+    # Raw telemetry fields populated by the real Go2 adapter.
+    sport_mode_error: Optional[int] = None
+    motion_mode: Optional[int] = None
+    bms_status: Optional[int] = None
+    # Locomotion lifecycle fields
+    locomotion_state: str = "unknown"
+    can_move: bool = False
+    block_reason: Optional[str] = None
 
 
 class MotionCommand(StrictModel):
@@ -118,7 +127,7 @@ RouteStep = Annotated[
 
 class RouteModel(StrictModel):
     route_id: str
-    steps: list[RouteStep]
+    steps: List[RouteStep]
 
 
 class TelemetrySnapshot(StrictModel):
@@ -138,7 +147,7 @@ class MissionStartRequest(StrictModel):
 
 class MissionRunRequest(StrictModel):
     route_id: str
-    steps: list[RouteStep]
+    steps: List[RouteStep]
 
 
 class TeleopCommandRequest(StrictModel):
@@ -160,7 +169,12 @@ class StatusResponse(StrictModel):
     route_id: Optional[str] = None
     mission_id: Optional[str] = None
     active_step_id: Optional[str] = None
-    sensor_statuses: dict[str, dict[str, object]] = Field(default_factory=dict)
+    sensor_statuses: Dict[str, Dict[str, object]] = Field(default_factory=dict)
+    control_mode: str = "auto"
+    locomotion_state: str = "unknown"
+    can_move: bool = False
+    block_reason: Optional[str] = None
+    activation_required: bool = False
 
 
 class MissionCurrentResponse(StrictModel):
@@ -210,7 +224,7 @@ class EventRecord(StrictModel):
     sequence: Optional[int] = None
     ts: datetime
     event: str
-    details: dict = Field(default_factory=dict)
+    details: Dict = Field(default_factory=dict)
 
 
 class AnalyzerResult(StrictModel):
@@ -218,7 +232,23 @@ class AnalyzerResult(StrictModel):
     status: str
     result: str
     score: Optional[float] = None
-    details: dict = Field(default_factory=dict)
+    details: Dict = Field(default_factory=dict)
+
+
+class AnalysisResult(StrictModel):
+    """Structured checkpoint analysis output."""
+    analyzer_name: str
+    label: str          # "changed"|"stable"|"present"|"absent"|"mock"|...
+    score: float
+    passed: bool
+    threshold: float
+    details: Dict
+    reference_image_path: Optional[str] = None
+    image_path: str = ""      # set by storage after save
+    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+    def to_dict(self) -> Dict:
+        return self.model_dump(mode="json")
 
 
 class FinalReport(StrictModel):
@@ -228,11 +258,11 @@ class FinalReport(StrictModel):
     started_at: datetime
     finished_at: Optional[datetime] = None
     steps_executed: int = 0
-    checkpoints: list[dict] = Field(default_factory=list)
-    analysis_results: list[dict] = Field(default_factory=list)
-    mode_transitions: list[dict] = Field(default_factory=list)
-    errors: list[dict] = Field(default_factory=list)
-    warnings: list[dict] = Field(default_factory=list)
+    checkpoints: List[Dict] = Field(default_factory=list)
+    analysis_results: List[Dict] = Field(default_factory=list)
+    mode_transitions: List[Dict] = Field(default_factory=list)
+    errors: List[Dict] = Field(default_factory=list)
+    warnings: List[Dict] = Field(default_factory=list)
 
 
 class RouteFile(StrictModel):

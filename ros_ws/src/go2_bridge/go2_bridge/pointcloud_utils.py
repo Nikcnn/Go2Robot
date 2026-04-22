@@ -138,7 +138,7 @@ def project_points_to_scan(
     bin_indices = np.floor((valid_angles - angle_min) / angle_increment).astype(np.int32)
     bin_indices = np.clip(bin_indices, 0, sample_count - 1)
 
-    for index, distance in zip(bin_indices, valid_distances, strict=False):
+    for index, distance in zip(bin_indices, valid_distances):
         if distance < ranges[index]:
             ranges[index] = float(distance)
 

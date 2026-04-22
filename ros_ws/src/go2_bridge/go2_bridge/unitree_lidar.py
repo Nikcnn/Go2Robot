@@ -144,7 +144,7 @@ def _resolve_pointcloud_message_type(
     message_type: str | None = None,
 ) -> Any:
     # TODO(sdk): Verify the exact generated PointCloud2 import path on the target
-    # Ubuntu 22.04 + unitree_sdk2py installation. Until that is confirmed on the
+    # Ubuntu 20.04 + unitree_sdk2py installation. Until that is confirmed on the
     # robot, keep all import-path uncertainty isolated here and fail clearly.
     candidate_type_names = [message_type] if message_type else ["PointCloud2_", "PointCloud2"]
     for module_name in _candidate_pointcloud_modules(message_module=message_module):

@@ -6,10 +6,10 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
+from typing import Optional, Union, Dict, List
 
 import cv2
 from pydantic import BaseModel
-from typing import Optional, Union
 
 
 def utc_now() -> datetime:
@@ -34,7 +34,7 @@ class RunContext:
     route_id: str
     run_dir: Path
     started_at: datetime
-    report: dict
+    report: Dict
 
 
 class StorageManager:
@@ -83,7 +83,7 @@ class StorageManager:
             )
             return context
 
-    def record_event(self, event: str, details: Optional[dict] = None) -> dict:
+    def record_event(self, event: str, details: Optional[Dict] = None) -> Dict:
         details = details or {}
         record = {"ts": utc_now(), "event": event, "details": details}
         with self._lock:
@@ -97,7 +97,7 @@ class StorageManager:
                     self._active_run.report["errors"].append(record)
         return record
 
-    def append_telemetry(self, snapshot: dict) -> None:
+    def append_telemetry(self, snapshot: Dict) -> None:
         with self._lock:
             if self._active_run is None:
                 return
@@ -107,10 +107,10 @@ class StorageManager:
         self,
         waypoint_id: str,
         frame,
-        analysis_result: dict,
-        telemetry_snapshot: dict,
-        sensor_captures: Optional[dict[str, dict]] = None,
-    ) -> Optional[dict]:
+        analysis_result: Dict,
+        telemetry_snapshot: Dict,
+        sensor_captures: Optional[Dict[str, Dict]] = None,
+    ) -> Optional[Dict]:
         with self._lock:
             if self._active_run is None:
                 return None
@@ -169,11 +169,11 @@ class StorageManager:
         with self._lock:
             return self._active_run.run_dir if self._active_run else None
 
-    def _append_jsonl(self, path: Path, payload: dict) -> None:
+    def _append_jsonl(self, path: Path, payload: Dict) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(payload, default=_json_default) + "\n")
 
-    def _write_json(self, path: Path, payload: dict) -> None:
+    def _write_json(self, path: Path, payload: Dict) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(payload, default=_json_default, indent=2), encoding="utf-8")

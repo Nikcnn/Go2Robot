@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import threading
 import time
+from typing import List
 import unittest.mock as mock
 
 import cv2
@@ -25,7 +26,7 @@ def _make_control(adapter=None, watchdog_ms=500):
     if adapter is None:
         adapter = MockRobotAdapter(width=160, height=120)
         adapter.connect()
-    ctrl = ControlCore(adapter=adapter, max_vx=0.5, max_vyaw=1.0, watchdog_timeout_ms=watchdog_ms)
+    ctrl = ControlCore(adapter=adapter, max_vx=0.5, max_vy=0.5, max_vyaw=1.0, watchdog_timeout_ms=watchdog_ms)
     ctrl.start()
     return ctrl, adapter
 
@@ -56,7 +57,7 @@ def test_move_blocked_when_estop_latched():
 def test_move_blocked_until_motion_ready():
     adapter = MockRobotAdapter(width=160, height=120)
     # deliberately NOT calling connect() → locomotion_state = "disconnected"
-    ctrl = ControlCore(adapter=adapter, max_vx=0.5, max_vyaw=1.0, watchdog_timeout_ms=500)
+    ctrl = ControlCore(adapter=adapter, max_vx=0.5, max_vy=0.5, max_vyaw=1.0, watchdog_timeout_ms=500)
     ctrl.start()
     try:
         assert not adapter.can_move
@@ -82,7 +83,7 @@ def test_ensure_motion_ready_called_before_mission():
     adapter = MockRobotAdapter(width=160, height=120)
     adapter.connect()
 
-    calls: list[str] = []
+    calls: List[str] = []
     original_ensure = adapter.ensure_motion_ready
 
     def tracking_ensure(timeout=5.0):
@@ -91,7 +92,7 @@ def test_ensure_motion_ready_called_before_mission():
 
     adapter.ensure_motion_ready = tracking_ensure  # type: ignore[method-assign]
 
-    ctrl = ControlCore(adapter=adapter, max_vx=0.5, max_vyaw=1.0, watchdog_timeout_ms=500)
+    ctrl = ControlCore(adapter=adapter, max_vx=0.5, max_vy=0.5, max_vyaw=1.0, watchdog_timeout_ms=500)
     ctrl.start()
 
     runs_dir = make_test_dir("lifecycle_ensure")
@@ -260,10 +261,11 @@ def test_mock_mode_estop_blocks_and_recovers():
     adapter.connect()
     assert adapter._locomotion_state == "ready"
 
-    ctrl = ControlCore(adapter=adapter, max_vx=0.5, max_vyaw=1.0, watchdog_timeout_ms=500)
+    ctrl = ControlCore(adapter=adapter, max_vx=0.5, max_vy=0.5, max_vyaw=1.0, watchdog_timeout_ms=500)
     ctrl.start()
     try:
         assert ctrl.submit(MotionCommand(vx=0.3), CommandSource.AUTO)
+        time.sleep(0.1)
         assert adapter._locomotion_state == "moving"
 
         ctrl.latch_estop()

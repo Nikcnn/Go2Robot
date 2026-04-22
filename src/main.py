@@ -5,6 +5,7 @@ import logging
 import socket
 import sys
 from pathlib import Path
+from typing import Tuple
 
 import uvicorn
 
@@ -29,7 +30,7 @@ def _resolve_server_port(host: str, preferred_port: int, search_limit: int = 100
     raise RuntimeError(f"No free port found on {host} starting from {preferred_port}.")
 
 
-def _create_app_with_fallback(config: AppConfig, config_path: Path):
+def _create_app_with_fallback(config: AppConfig, config_path: Path) -> Tuple[object, str]:
     try:
         return create_app(config=config, config_path=config_path), config.robot.mode
     except RuntimeError as exc:

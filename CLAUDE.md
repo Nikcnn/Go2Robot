@@ -1,28 +1,49 @@
 # Go2 Inspection System
 
-## Hard scope
-- Safe test-environment MVP only.
-- Python 3.9+ only.
-- Allowed stack: FastAPI, Uvicorn, OpenCV, numpy, PyYAML, pydantic v2, pytest.
-- No ROS/ROS2, Nav2, SLAM, RViz, Gazebo, BIM, digital twin, manipulator, fleet management, auth framework, React/Vue, frontend build tools.
+## Scope
 
-## Non-negotiables
+- Safe test-environment project only.
+- Target Ubuntu 20.04 and Python 3.8.
+- `src/` is the standalone Python app path.
+- `ros_ws/` is the ROS 2 Foxy path.
+- Keep mock mode runnable without hardware.
+
+## Project Paths
+
+- `src/`: FastAPI app, dashboard, scripted route executor, control core, telemetry, camera streaming, storage, reports, mock adapter, Go2 adapter.
+- `config/routes/`: scripted JSON routes for the Python app.
+- `ros_ws/`: ROS 2 Foxy workspace with `go2_bridge`, `go2_mission`, `go2_interfaces`, and Nav2 bringup.
+- `shared_missions/`: coordinate waypoint missions and maps for the ROS layer.
+- `runs/`: runtime artifacts.
+- `tests/`: hardware-free pytest coverage.
+
+## Non-Negotiables
+
 - Never invent Unitree SDK method names.
-- In the Python app, uncertain SDK work stays isolated to `src/robot/go2_adapter.py`.
-- In the ROS 2 stack, `go2_bridge` is the only process allowed to touch the Go2 adapter and `unitreesdk2py`.
-- `ChannelFactory` is a process singleton; do not create a second SDK-owning process.
-- Mock mode must continue to work without hardware.
-- Keep tests hardware-free unless a task explicitly requires otherwise.
+- Keep uncertain Python app SDK integration in `src/robot/go2_adapter.py` and closely related adapter files.
+- In ROS, `go2_bridge` is the only process allowed to touch the adapter or `unitree_sdk2py`.
+- Treat `ChannelFactory` as a process singleton.
+- Do not run the Python app and `go2_bridge` as real SDK owners at the same time.
+- For ROS work, use Foxy APIs and Ubuntu 20.04 assumptions only.
 
-## Mission model
-- `src/` still uses scripted JSON steps such as `move`, `rotate`, `checkpoint`, and `stop`.
-- `ros_ws/` uses coordinate waypoint missions from `shared_missions/missions/*.json`.
-- Control priority is always `ESTOP > MANUAL > AUTO`.
-- Manual override pauses missions and never auto-resumes them.
+## Mission Model
 
-## Working style
-- Read the minimum number of files needed.
-- Patch the minimum possible surface area.
+- Python app routes are scripted JSON files using steps such as `move`, `move_velocity`, `rotate`, `checkpoint`, `stop`, `stand_up`, `wait`, and `settle`.
+- ROS missions are coordinate waypoint JSON files sent through Nav2 `FollowWaypoints`.
+- Priority is always `ESTOP > MANUAL > AUTO`.
+- Manual override pauses missions and does not auto-resume them.
+
+## Sensors
+
+- Robot camera support stays on the adapter path.
+- RealSense is optional and must not break mock mode or robot-camera operation.
+- ROS lidar code publishes `/points` and converts PointCloud2 to `/scan`, but real Unitree lidar message import details still need Ubuntu 20.04 target validation.
+- Do not claim mapping, AMCL, or Nav2 runtime completeness without a verified live `/scan`.
+
+## Working Style
+
+- Read the minimum files needed.
+- Patch the minimum surface area.
 - Prefer direct modules over large abstractions.
-- Match the layer you are editing: do not pull ROS assumptions into the pure Python MVP unless requested.
-- For ROS changes, stay on Humble APIs and package conventions.
+- Keep Python app concerns and ROS concerns separated.
+- Keep tests fast and hardware-free unless hardware testing is explicitly requested.

@@ -1,29 +1,35 @@
 # Go2 Quickstart
 
-This repo now has two runnable paths:
+Use Ubuntu 20.04 and Python 3.8 for deployment. Use ROS 2 Foxy only for the `ros_ws/` path.
 
-- Python MVP only: FastAPI + dashboard + scripted motion in `src/`
-- ROS 2 stack: `ros_ws/` with `go2_bridge`, `go2_mission`, and `go2_nav_bringup`
+## Choose a Path
 
-Use the Python path when you want the existing dashboard and scripted routes. Use the ROS 2 path only on Ubuntu 22.04 with ROS 2 Humble.
+Use the Python app when you need:
 
-## 1. Python MVP on the real robot
+- operator dashboard
+- scripted JSON routes from `config/routes/`
+- mock mode
+- direct Go2 adapter mode
+- checkpoint images, telemetry, and reports
 
-Use this when the robot is already connected by LAN on `enp0s20f0u1c2` and you want the existing operator dashboard plus the current scripted route executor.
+Use the ROS 2 path when you need:
 
-Install Python deps:
+- coordinate waypoint missions from `shared_missions/missions/`
+- Nav2 `FollowWaypoints`
+- mapping or localization through `/scan`
+- ROS graph integration
+
+Do not run both paths as SDK owners at the same time in real `go2` mode.
+
+## Python App in Mock Mode
 
 ```bash
-cd /home/nikcnn/Go2Robot/Go2_MVP
+cd /path/to/Go2Robot
+python3.8 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
 pip install -r requirements.txt
-```
-
-If `unitree_sdk2py` is not installed yet, install it first. The server fails fast if the SDK is missing in `go2` mode.
-
-Start the server:
-
-```bash
-python -m src.main --config config/app_config.go2.enp0s20f0u1c2.yaml
+python3 -m src.main --config config/app_config.yaml
 ```
 
 Open:
@@ -32,19 +38,7 @@ Open:
 http://127.0.0.1:8000/
 ```
 
-The dashboard shows:
-
-- live robot camera frames
-- battery percent, voltage/current, and cycle count
-- fault text derived from `rt/sportmodestate` and `rt/lowstate`
-
-Run the short scripted route:
-
-```text
-short_walk_20cm
-```
-
-Or by API:
+Start a route from the dashboard or by API:
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/mission/start \
@@ -52,38 +46,50 @@ curl -X POST http://127.0.0.1:8000/api/mission/start \
   -d '{"route_id":"short_walk_20cm"}'
 ```
 
-Manual/ESTOP reminders:
+Mock mode uses synthetic pose, telemetry, and camera frames. It does not need Go2 hardware, the Unitree SDK, ROS, or RealSense.
 
-- Manual takeover uses a posture-preserving stop and pauses the mission.
-- Manual release does not auto-resume the mission.
-- `ESTOP` uses passive damping. After reset, activate the robot before moving again:
+## Python App on Real Go2
+
+Prerequisites:
+
+- Ubuntu 20.04
+- Python 3.8 environment with `requirements.txt` installed
+- `unitree_sdk2py` installed manually
+- robot connected on the configured network interface
+
+Run:
+
+```bash
+python3 -m src.main --config config/app_config.go2.enp0s20f0u1c2.yaml
+```
+
+If your interface differs, copy the config and change:
+
+```yaml
+robot:
+  mode: go2
+  interface_name: eth0
+```
+
+Useful API commands:
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/robot/activate
+curl -X POST http://127.0.0.1:8000/api/mode/manual/take
+curl -X POST http://127.0.0.1:8000/api/mode/manual/release
+curl -X POST http://127.0.0.1:8000/api/mode/estop
+curl -X POST http://127.0.0.1:8000/api/mode/reset-estop
 ```
 
-## 2. ROS 2 Humble stack
+Manual takeover pauses the mission. Manual release does not auto-resume it.
 
-Use this path for the new architecture:
+## ROS 2 Foxy Setup
 
-```text
-web/FastAPI -> ROS 2 mission service -> Nav2 -> go2_bridge -> unitreesdk2py -> robot
-```
-
-Platform requirements:
-
-- Ubuntu 22.04
-- ROS 2 Humble
-- Python 3.10
-- `RMW_IMPLEMENTATION=rmw_cyclonedds_cpp`
-
-Build instructions are in [BUILD.md](</D:/Go2Robot/BUILD.md>).
-
-Typical sequence:
+On Ubuntu 20.04:
 
 ```bash
 cd /path/to/Go2Robot/ros_ws
-source /opt/ros/humble/setup.bash
+source /opt/ros/foxy/setup.bash
 rosdep install --from-paths src --ignore-src -r -y
 colcon build --symlink-install
 source install/setup.bash
@@ -91,45 +97,66 @@ export GO2_OPERATOR_APP_ROOT=/path/to/Go2Robot
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 ```
 
-Mapping bringup:
+## ROS Mapping
 
 ```bash
 ros2 launch go2_nav_bringup mapping.launch.py \
   robot_mode:=go2 \
   interface_name:=enp0s20f0u1c2 \
+  use_lidar:=true \
+  lidar_mode:=auto \
   use_realsense:=false \
-  require_realsense:=false \
-  lidar_mode:=auto
+  require_realsense:=false
 ```
 
-Navigation bringup:
+If the Unitree lidar SDK message type cannot be resolved, pass overrides:
+
+```bash
+lidar_sdk_msg_module:=<python_module> lidar_sdk_msg_type:=<message_type>
+```
+
+If the physical lidar is not mounted at `base_link`, override:
+
+```bash
+lidar_tf_x:=0.0 lidar_tf_y:=0.0 lidar_tf_z:=0.0 \
+lidar_tf_roll:=0.0 lidar_tf_pitch:=0.0 lidar_tf_yaw:=0.0
+```
+
+## ROS Navigation
 
 ```bash
 ros2 launch go2_nav_bringup navigation.launch.py \
   robot_mode:=go2 \
   interface_name:=enp0s20f0u1c2 \
-  map:=/path/to/shared_missions/maps/site_a_floor_1.yaml \
-  use_realsense:=false \
-  require_realsense:=false \
+  map:=/path/to/Go2Robot/shared_missions/maps/site_a_floor_1.yaml \
+  use_lidar:=true \
   lidar_mode:=auto
 ```
 
-If the built-in lidar DDS topic on your robot is not `utlidar/cloud`, add `lidar_sdk_topic:=<topic_name>` to either launch command. If the SDK-generated PointCloud2 message import path differs on Ubuntu, add `lidar_sdk_msg_module:=<module> lidar_sdk_msg_type:=<type>` as well.
+Start a coordinate mission:
 
-To expose the D435i as an auxiliary ROS point cloud source in addition to color/depth images, add `use_realsense:=true realsense_publish_pointcloud:=true`.
-
-The launch files now publish a static `base_link -> utlidar_lidar` transform. If the physical lidar mount is not at the base origin, override `lidar_tf_x`, `lidar_tf_y`, `lidar_tf_z`, `lidar_tf_roll`, `lidar_tf_pitch`, and `lidar_tf_yaw`.
-
-Mission file example:
-
-```text
-shared_missions/missions/inspect_line_a.json
+```bash
+ros2 service call /go2_mission/command go2_interfaces/srv/MissionControl \
+  "{command: start, mission_path: /path/to/Go2Robot/shared_missions/missions/inspect_line_a.json, mission_json: ''}"
 ```
 
-Important limitation:
+Check status:
 
-- `go2_bridge` is the only process allowed to touch `unitreesdk2py` because `ChannelFactory` is a process singleton.
-- Built-in Go2 lidar is now intended to be the primary navigation sensor path. `base_bridge` publishes `/points` and `lidar_bridge` converts it to `/scan` for SLAM, AMCL, and Nav2.
-- Optional D435i ROS topics come from `camera_bridge`: `/camera/color/image_raw`, `/camera/depth/image_rect_raw`, and `/camera/depth/points` when `realsense_publish_pointcloud:=true`.
-- The exact built-in lidar SDK message import path still has to be validated on Ubuntu 22.04 + ROS 2 Humble with the robot connected.
-- The ROS stack was generated from this Windows workspace but not runtime-validated here; validate on Ubuntu 22.04 + Humble.
+```bash
+ros2 service call /go2_mission/command go2_interfaces/srv/MissionControl \
+  "{command: status, mission_path: '', mission_json: ''}"
+```
+
+Cancel:
+
+```bash
+ros2 service call /go2_mission/command go2_interfaces/srv/MissionControl \
+  "{command: cancel, mission_path: '', mission_json: ''}"
+```
+
+## Runtime Limits
+
+- Mapping, AMCL, and Nav2 require a real `/scan` source.
+- The PointCloud2-to-LaserScan bridge exists, but the real Unitree lidar SDK message path still needs target validation.
+- The ROS stack must be runtime-tested on Ubuntu 20.04 with ROS 2 Foxy and the robot connected.
+- The Python app remains the fastest hardware-free development path through mock mode.

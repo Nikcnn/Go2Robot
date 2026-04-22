@@ -57,7 +57,7 @@ class ControlCore:
         max_vy: float,
         max_vyaw: float,
         watchdog_timeout_ms: int,
-        event_callback: Optional[Callable[[str, dict], None]] = None,
+        event_callback: Optional[Callable[[str, Dict], None]] = None,
     ) -> None:
         self.adapter = adapter
         self.max_vx = max_vx
@@ -394,6 +394,10 @@ class ControlCore:
                 self._last_action_message = f"{source.value.lower()} command rejected by control priority"
                 return False
 
+            if not getattr(self.adapter, "can_move", True):
+                self._last_action_message = f"command rejected: adapter cannot move ({getattr(self.adapter, 'block_reason', 'unknown')})"
+                return False
+
             target = _Velocity(
                 vx=self._clamp(command.vx, self.max_vx),
                 vy=self._clamp(command.vy, self.max_vy),
@@ -596,7 +600,7 @@ class ControlCore:
     def _active_target_locked(self) -> _Velocity:
         if self.mode == RobotMode.MANUAL:
             return self._manual_target
-        if self.mission_status in {MissionStatus.STARTING, MissionStatus.RUNNING}:
+        if self.mission_status not in TERMINAL_STATUSES | {MissionStatus.PAUSED_MANUAL}:
             return self._auto_target
         return _Velocity()
 

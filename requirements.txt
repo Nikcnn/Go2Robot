@@ -1,8 +1,16 @@
-fastapi==0.115.12
-uvicorn==0.34.2
-opencv-python-headless==4.11.0.86
-numpy==2.2.5
-PyYAML==6.0.2
-pydantic==2.11.3
-pytest==8.3.5
-httpx==0.28.1
+# Python 3.8 application and test dependencies.
+# Hardware-specific packages are intentionally installed separately.
+
+fastapi>=0.110,<0.116
+uvicorn[standard]>=0.27,<0.31
+pydantic>=2.6,<2.11
+typing-extensions>=4.6,<5.0
+PyYAML>=6.0,<7.0
+numpy>=1.23,<1.25
+opencv-python-headless>=4.8,<4.11
+httpx>=0.27,<0.29
+pytest>=8.0,<8.4
+
+# Optional hardware dependencies:
+# unitree_sdk2py  # Required only for real Go2 mode.
+# pyrealsense2    # Required only when RealSense support is enabled.

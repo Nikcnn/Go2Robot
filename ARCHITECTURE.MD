@@ -1,133 +1,163 @@
 # Architecture
 
-## Overview
+The project is split into a standalone Python application layer and a ROS 2 Foxy navigation layer. Both layers share mission artifact storage under `runs/`, but they have separate execution models.
 
-The repo now contains two layers:
-
-- Application layer in `src/`: the existing FastAPI backend, operator dashboard, scripted mission executor, storage, reporting, image analysis, and mock/real Go2 adapter support.
-- ROS 2 layer in `ros_ws/`: the new Humble workspace that introduces a bridge process, Nav2 mission execution, and launch/config assets for mapping and navigation.
-
-The current repository layout is still centered on `src/` for the operator app. The ROS packages import selected pieces from that existing Python codebase instead of duplicating storage and analysis logic.
-
-## Current Python MVP
-
-The current application path is:
+## High-Level Shape
 
 ```text
-dashboard/web client
-  -> FastAPI in src/api.py
-  -> ControlCore in src/control.py
-  -> MissionManager in src/mission.py
-  -> RobotAdapterProtocol in src/robot/robot_adapter.py
+Python app path:
+Browser dashboard / REST client
+  -> FastAPI app
+  -> ControlCore
+  -> MissionManager
+  -> RobotAdapterProtocol
+  -> MockRobotAdapter or Go2RobotAdapter
+
+ROS 2 path:
+Mission service client
+  -> go2_mission
+  -> Nav2 FollowWaypoints
+  -> /cmd_vel
+  -> go2_bridge
   -> MockRobotAdapter or Go2RobotAdapter
 ```
 
-Key properties:
+The direct Unitree SDK boundary is intentionally narrow. In the Python app it belongs in `src/robot/go2_adapter.py` and closely related robot adapter code. In ROS it belongs in `go2_bridge`, which is the only ROS process allowed to own the adapter.
 
-- Motion is scripted and time-based: `send_velocity(vx, vy, vyaw)` + wait + `stop()`.
-- No localization, SLAM, or Nav2 is required for the current MVP.
-- Mock mode runs end-to-end without hardware.
-- All uncertain Unitree SDK integration remains isolated to `src/robot/go2_adapter.py`.
-- Mission semantics are enforced in one place: `ESTOP > MANUAL > AUTO`.
+## Python Application Layer
 
-## ROS 2 Target Layer
+The Python app lives in `src/` and targets Python 3.8.
 
-The new target flow is:
+Main components:
+
+- `src/main.py`: command-line bootstrap, config loading, port selection, Uvicorn startup.
+- `src/api.py`: FastAPI app composition, HTTP endpoints, WebSockets, startup and shutdown lifecycle.
+- `src/control.py`: central motion arbiter and safety priority enforcement.
+- `src/mission.py`: scripted route loading, validation, execution, checkpoint handling.
+- `src/models.py`: Pydantic v2 models for routes, API payloads, telemetry, reports, and actions.
+- `src/robot/robot_adapter.py`: adapter protocol and mock implementation.
+- `src/robot/go2_adapter.py`: real Go2 adapter boundary for `unitree_sdk2py`.
+- `src/telemetry.py`: adapter polling and telemetry snapshots.
+- `src/streaming.py`: camera stream and event stream support.
+- `src/storage.py`: run directories, events, telemetry, checkpoint images, reports.
+- `src/event_log.py`: cross-run event log.
+- `src/state_machine.py`: effective robot state tracking for UI and API.
+- `src/sensors/realsense_camera.py`: optional RealSense D435i capture path.
+- `src/web/`: static dashboard.
+
+## Python App Runtime
+
+At startup the app:
+
+1. Loads `config/app_config.yaml` or another supplied config file.
+2. Builds the adapter in `mock` or `go2` mode.
+3. Builds `ControlCore`, telemetry, camera streaming, storage, event log, and mission services.
+4. Starts the adapter, telemetry poller, camera worker, and optional RealSense service.
+5. Serves the dashboard, API endpoints, WebSockets, and MJPEG camera stream.
+
+If adapter startup fails, the app remains safe: movement is blocked and the control state is latched accordingly.
+
+## Control Semantics
+
+Motion commands go through `ControlCore`.
+
+Priority is:
 
 ```text
-web / FastAPI
-  -> ROS 2 mission service
-  -> Nav2 FollowWaypoints
-  -> go2_bridge
-  -> unitreesdk2py
-  -> Go2 robot
+ESTOP > MANUAL > AUTO
 ```
 
-The ROS workspace lives under `ros_ws/src/` and contains:
+Rules:
 
-- `go2_interfaces`: custom services for mission control and checkpoint capture
-- `go2_bridge`: the only ROS package allowed to touch the Go2 Python adapter and, by extension, `unitreesdk2py`
-- `go2_mission`: mission execution and service bridge to Nav2
-- `go2_nav_bringup`: launch files, Nav2 params, maps, and RViz config
+- ESTOP blocks motion and aborts active automated work.
+- Manual takeover pauses a mission.
+- Manual release does not resume a mission automatically.
+- The manual watchdog stops motion if teleop commands stop arriving.
+- A single active motion authority should control the robot at any time.
 
-## Process Boundaries
+## Python Mission Model
 
-### `go2_bridge`
+Scripted routes live in `config/routes/*.json`.
 
-Responsibilities:
-
-- subscribes to `/cmd_vel`
-- calls `adapter.send_velocity()`
-- publishes `/odom`
-- publishes `/tf` from `odom -> base_link`
-- publishes built-in Go2 lidar `PointCloud2` on `/points` from the same SDK-owning process
-- keeps RealSense as an optional auxiliary ROS sensor source
-- exposes a checkpoint capture service so camera/state capture stays in the same process as the DDS SDK connection
-
-Important constraint:
-
-- `ChannelFactory` is a process singleton, so `go2_bridge` must be the only process that owns the Unitree DDS connection.
-
-### `go2_mission`
-
-Responsibilities:
-
-- loads coordinate missions from `shared_missions/missions/*.json`
-- sends `nav2_msgs/action/FollowWaypoints` goals
-- waits for arrival
-- triggers checkpoint logic after each reached waypoint
-- exposes a mission control service for FastAPI or rosbridge clients
-
-Checkpoint handling deliberately reuses existing application logic:
-
-- image capture and robot state are requested from `go2_bridge`
-- analysis is routed through the existing `src.analysis` module
-- storage/report writing is routed through the existing `src.storage.StorageManager`
-
-### `go2_nav_bringup`
-
-Responsibilities:
-
-- `mapping.launch.py`: starts `go2_bridge`, the lidar conversion chain, optional RealSense bridge, and `slam_toolbox`, but not Nav2
-- `navigation.launch.py`: starts `go2_bridge`, the lidar conversion chain, optional RealSense bridge, map server, AMCL, planner, controller, recoveries, BT navigator, waypoint follower, lifecycle managers, and mission API node
-- sets `RMW_IMPLEMENTATION=rmw_cyclonedds_cpp` in launch
-- carries a Humble-compatible `nav2_params.yaml`
-
-## Mission Formats
-
-Two mission styles now coexist in the repo.
-
-### Scripted route format used by the current Python MVP
-
-Stored under `config/routes/*.json`.
-
-Supported steps:
+Current route step types:
 
 - `move`
+- `move_velocity`
 - `rotate`
 - `checkpoint`
 - `stop`
+- `stand_up`
+- `wait`
+- `settle`
 
-### Coordinate waypoint format used by the ROS 2 layer
+These are time and velocity based scripts. They are not map-relative navigation goals.
 
-Stored under `shared_missions/missions/*.json`.
+## ROS 2 Foxy Layer
 
-Example:
+The ROS workspace lives in `ros_ws/` and targets Ubuntu 20.04, ROS 2 Foxy, and Python 3.8.
+
+Packages:
+
+- `go2_interfaces`: custom `CheckpointCapture` and `MissionControl` services.
+- `go2_bridge`: adapter owner, `/cmd_vel` subscriber, `/odom` and `/tf` publisher, checkpoint capture service, built-in lidar source, RealSense bridge.
+- `go2_mission`: coordinate mission loader, mission service node, Nav2 `FollowWaypoints` client, checkpoint task runner.
+- `go2_nav_bringup`: mapping and navigation launch files, Nav2 params, RViz config, maps.
+
+ROS runtime shape:
+
+```text
+go2_mission
+  -> nav2_msgs/action/FollowWaypoints
+  -> Nav2 waypoint follower
+  -> /cmd_vel
+  -> go2_bridge
+  -> robot adapter
+```
+
+## ROS Mission Model
+
+Coordinate missions live in `shared_missions/missions/*.json`.
+
+Example shape:
 
 ```json
 {
   "mission_id": "inspect_line_a",
   "map_id": "site_a_floor_1",
   "waypoints": [
-    {"id": "panel_A", "x": 4.12, "y": 1.83, "yaw": 1.57, "task": "inspect_panel"},
-    {"id": "switch_B", "x": 7.40, "y": 3.11, "yaw": 0.0, "task": "thermal_check"}
+    {"id": "panel_A", "x": 4.12, "y": 1.83, "yaw": 1.57, "task": "inspect_panel"}
   ]
 }
 ```
 
-## Shared Data and Reports
+Each waypoint is converted to a `PoseStamped` in the `map` frame and sent to Nav2.
 
-The existing run/report path remains the system of record:
+## Sensor Paths
+
+Robot camera:
+
+- The Python app uses the adapter camera path.
+- ROS checkpoint capture also asks `go2_bridge` to capture through the adapter.
+
+RealSense:
+
+- Python app support is optional through `src/sensors/realsense_camera.py`.
+- ROS support is optional through `go2_bridge/camera_bridge.py`.
+- RealSense must not break mock mode or the base robot-camera path.
+
+Built-in lidar:
+
+- `base_bridge` can publish PointCloud2 on `/points`.
+- `lidar_bridge` converts PointCloud2 into LaserScan on `/scan`.
+- Mock lidar exists for local ROS graph testing.
+- Real Unitree lidar needs the generated SDK PointCloud2 message import path verified on Ubuntu 20.04 with the robot connected.
+- Mapping, AMCL, and Nav2 are not runtime-complete without a live valid `/scan`.
+
+## Storage and Reports
+
+Both layers write run artifacts under `runs/`.
+
+Typical Python app run:
 
 ```text
 runs/mission_<id>/
@@ -139,44 +169,29 @@ runs/mission_<id>/
   final_report.json
 ```
 
-The ROS mission layer writes into that same structure by importing the existing storage module instead of introducing a second reporting format.
+With RealSense enabled, extra RGB-D files can be stored under a `realsense/` subdirectory.
 
-## Sensors
+The cross-run persistent event log is:
 
-Current state:
+```text
+runs/events.jsonl
+```
 
-- Robot camera: supported through the existing adapter path
-- RealSense D435i: supported in the Python MVP and exposed in ROS 2 through `go2_bridge/camera_bridge.py`
-- Built-in Go2 lidar: ROS path now targets `base_bridge -> /points -> lidar_bridge -> /scan`
+## Configuration
 
-Practical implication:
+Python app config:
 
-- mapping, AMCL, and Nav2 now have an in-repo sensor chain, but the built-in lidar SDK import/topic assumptions still need runtime validation on Ubuntu + the robot
+- `config/app_config.yaml`: mock default.
+- `config/app_config.go2.enp0s20f0u1c2.yaml`: real Go2 example.
 
-## Platform Assumptions
+ROS config:
 
-The ROS layer is written for:
+- Launch arguments in `mapping.launch.py` and `navigation.launch.py`.
+- Nav2 parameters in `ros_ws/src/go2_nav_bringup/params/nav2_params.yaml`.
+- Shared maps and missions under `shared_missions/`.
 
-- Ubuntu 22.04
-- ROS 2 Humble
-- Python 3.10
-- apt-installed Nav2 and slam_toolbox
-- `rmw_cyclonedds_cpp`
+## Current Validation State
 
-The existing application layer remains Python-first and continues to run in mock mode without ROS.
+Hardware-free Python tests exist under `tests/`.
 
-## What Is Verified vs Unverified
-
-Verified in this repository:
-
-- Python MVP in `src/`
-- generated ROS package structure
-- Python syntax for the new ROS nodes
-- JSON/YAML syntax for the shared mission and Nav2 parameters
-
-Not verified from this Windows workspace:
-
-- runtime behavior on Ubuntu 22.04 + ROS 2 Humble
-- Nav2 bringup with a real map and `/scan`
-- live built-in lidar DDS integration inside the ROS bridge
-- RealSense runtime inside ROS 2
+The ROS files are structured for Foxy, but full `colcon build`, Unitree SDK startup, real lidar, mapping, AMCL, Nav2, and robot motion must be validated on Ubuntu 20.04. Do not infer that runtime validation happened from this Windows workspace.
