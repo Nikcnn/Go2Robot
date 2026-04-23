@@ -26,9 +26,12 @@ from .models import (
 )
 from .operator_services import (
     CoordinateMissionStore,
+    OperatorLayoutStore,
     RosProcessService,
     build_operator_overview,
     build_sensor_summary,
+    map_pixel_to_world,
+    map_world_to_pixel,
 )
 from .robot.robot_adapter import build_robot_adapter
 from .sensors import RealsenseCameraService
@@ -58,6 +61,7 @@ class AppRuntime:
     event_log: PersistentEventLog
     ros: RosProcessService
     mission_store: CoordinateMissionStore
+    layouts: OperatorLayoutStore
     d1: D1Service
     adapter_connected: bool = field(default=False)
 
@@ -205,6 +209,7 @@ def create_app(config: Optional[AppConfig] = None, config_path: Union[str, Path]
         interface_name=loaded_config.robot.interface_name,
     )
     mission_store = CoordinateMissionStore(project_root)
+    layouts = OperatorLayoutStore(project_root)
     d1 = D1Service(allow_motion_commands=loaded_config.d1.enable_motion)
     runtime = AppRuntime(
         config=loaded_config,
@@ -222,6 +227,7 @@ def create_app(config: Optional[AppConfig] = None, config_path: Union[str, Path]
         event_log=event_log,
         ros=ros,
         mission_store=mission_store,
+        layouts=layouts,
         d1=d1,
     )
     # Late-bind the connected_fn so TelemetryService reads runtime.adapter_connected
@@ -637,6 +643,26 @@ def create_app(config: Optional[AppConfig] = None, config_path: Union[str, Path]
     def ros_mapping_start(payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         return record_operator_event("ros_mapping_start", runtime.ros.start_mapping(payload))
 
+    @app.get("/api/ros/mapping/status")
+    def ros_mapping_status() -> Dict[str, Any]:
+        status = runtime.ros.status()
+        return {
+            "running": bool(status["mapping"]["running"]),
+            "mode": status.get("mapping_mode", "idle"),
+            "mode_note": status.get("mapping_mode_note", ""),
+            "autonomous_exploration_available": bool(status.get("autonomous_exploration_available")),
+            "last_start": (status.get("last_results") or {}).get("mapping_start"),
+            "last_save": (status.get("last_results") or {}).get("map_save"),
+        }
+
+    @app.get("/api/ros/mission/status")
+    def ros_mission_status_endpoint() -> Dict[str, Any]:
+        status = runtime.ros.mission_status()
+        current = runtime.control.current()
+        status["manual_takeover"] = current.robot_mode.value == "MANUAL"
+        status["estop_latched"] = current.estop_latched
+        return status
+
     @app.post("/api/ros/mapping/stop")
     def ros_mapping_stop() -> Dict[str, Any]:
         return record_operator_event("ros_mapping_stop", runtime.ros.stop_mapping())
@@ -661,9 +687,76 @@ def create_app(config: Optional[AppConfig] = None, config_path: Union[str, Path]
     def list_maps() -> Dict[str, Any]:
         return {"maps": runtime.mission_store.list_maps()}
 
+    @app.get("/api/maps/{map_id}")
+    def get_map(map_id: str) -> Dict[str, Any]:
+        try:
+            return runtime.mission_store.load_map(map_id)
+        except FileNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.get("/api/maps/{map_id}/image")
+    def get_map_image(map_id: str) -> FileResponse:
+        try:
+            image_path = runtime.mission_store.map_image_path(map_id)
+        except FileNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        suffix = image_path.suffix.lower()
+        if suffix == ".pgm":
+            # PGM is not renderable in browsers; fall through to image/pgm so operators
+            # at least get the raw asset for download or custom tooling.
+            media = "image/x-portable-graymap"
+        elif suffix in {".png", ".jpg", ".jpeg"}:
+            media = f"image/{suffix.lstrip('.').replace('jpg', 'jpeg')}"
+        else:
+            media = "application/octet-stream"
+        return FileResponse(image_path, media_type=media)
+
+    @app.get("/api/maps/{map_id}/image.png")
+    def get_map_image_png(map_id: str) -> StreamingResponse:
+        """Browser-friendly PNG render of the map image, converted on the fly when needed."""
+        try:
+            image_path = runtime.mission_store.map_image_path(map_id)
+        except FileNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        import numpy as np  # local import keeps module load minimal
+        image = cv2.imread(str(image_path), cv2.IMREAD_GRAYSCALE)
+        if image is None:
+            raise HTTPException(status_code=500, detail="Unable to decode map image.")
+        ok, encoded = cv2.imencode(".png", image)
+        if not ok:
+            raise HTTPException(status_code=500, detail="Unable to encode map image as PNG.")
+        return StreamingResponse(iter([encoded.tobytes()]), media_type="image/png")
+
     @app.post("/api/maps/save")
     def save_map(payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         return ros_mapping_save(payload)
+
+    @app.post("/api/maps/convert/pixel-to-world")
+    def convert_pixel_to_world(payload: Dict[str, Any]) -> Dict[str, Any]:
+        try:
+            map_id = str(payload.get("map_id") or "")
+            u = float(payload["u"])
+            v = float(payload["v"])
+            metadata = runtime.mission_store.load_map(map_id)
+            origin = metadata["origin"]
+            resolution = metadata["resolution"]
+            height_px = metadata.get("height_px")
+            if not height_px:
+                raise HTTPException(status_code=400, detail="Map image size is required for coordinate conversion.")
+            x, y = map_pixel_to_world(u, v, origin=origin, resolution=resolution, height_px=height_px)
+            return {"x": x, "y": y}
+        except FileNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except KeyError as exc:
+            raise HTTPException(status_code=400, detail=f"Missing field {exc!s}") from exc
 
     @app.get("/api/missions")
     def list_waypoint_missions() -> Dict[str, Any]:
@@ -733,11 +826,80 @@ def create_app(config: Optional[AppConfig] = None, config_path: Union[str, Path]
         return {"ok": True, "message": "Waypoint saved from current pose.", "result": result}
 
     @app.get("/api/robot/lidar/scan")
-    def lidar_scan_endpoint() -> Dict:
+    def lidar_scan_endpoint(max_points: int = Query(default=720, ge=1, le=4096)) -> Dict:
         scan_fn = getattr(runtime.adapter, "get_lidar_scan", None)
         if scan_fn is None:
-            return {"points": [], "available": False}
-        return {"points": scan_fn(), "available": True}
+            return {
+                "points": [],
+                "available": False,
+                "source": "unavailable",
+                "note": "No get_lidar_scan hook on the active adapter. Real Hesai XT16 data is published to /points over ROS go2_bridge.",
+            }
+        points = list(scan_fn() or [])
+        total = len(points)
+        if total > max_points:
+            stride = max(1, total // max_points)
+            points = points[::stride]
+        return {
+            "points": points,
+            "available": True,
+            "source": "adapter",
+            "total": total,
+            "returned": len(points),
+        }
+
+    @app.get("/api/sensors/lidar/view")
+    def lidar_view_endpoint() -> Dict[str, Any]:
+        """Stable operator view-model describing the current LiDAR stream state."""
+        adapter_has_scan = hasattr(runtime.adapter, "get_lidar_scan")
+        ros_running = bool(runtime.ros.status().get("mapping", {}).get("running")) or bool(
+            runtime.ros.status().get("navigation", {}).get("running")
+        )
+        if adapter_has_scan:
+            stream_state = "live"
+            message = "Adapter is publishing synthetic/mock scan data."
+        elif ros_running:
+            stream_state = "ros_only"
+            message = (
+                "ROS stack is running; real Hesai XT16 points are published to /points. "
+                "The web panel cannot subscribe to ROS topics directly — bridge /points into the app "
+                "(future work) to see live data here."
+            )
+        else:
+            stream_state = "no_data"
+            message = "LiDAR is idle. Start mapping or navigation to bring up the Hesai XT16 stream."
+        return {
+            "sensor": "hesai_unitree_xt16",
+            "stream_state": stream_state,
+            "adapter_has_scan": adapter_has_scan,
+            "ros_stack_running": ros_running,
+            "message": message,
+            "scan_endpoint": "/api/robot/lidar/scan",
+        }
+
+    @app.get("/api/operator/layout/{layout_id}")
+    def get_layout(layout_id: str) -> Dict[str, Any]:
+        try:
+            payload = runtime.layouts.get(layout_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return {"layout_id": layout_id, "payload": payload}
+
+    @app.put("/api/operator/layout/{layout_id}")
+    def save_layout(layout_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        try:
+            saved = runtime.layouts.save(layout_id, payload)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return {"layout_id": layout_id, "payload": saved}
+
+    @app.delete("/api/operator/layout/{layout_id}")
+    def delete_layout(layout_id: str) -> Dict[str, Any]:
+        try:
+            removed = runtime.layouts.delete(layout_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return {"ok": removed}
 
     @app.get("/stream/realsense/color")
     def realsense_color_stream() -> StreamingResponse:

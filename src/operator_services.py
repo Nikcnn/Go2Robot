@@ -56,6 +56,36 @@ def _json_default(value: Any) -> Any:
     raise TypeError(f"Object of type {type(value)!r} is not JSON serializable")
 
 
+def _read_pgm_size(path: Path) -> Optional[Tuple[int, int]]:
+    """Read the width/height header from a binary or ASCII PGM without pulling in PIL/cv2."""
+    try:
+        with path.open("rb") as handle:
+            magic = handle.readline().strip()
+            if magic not in (b"P5", b"P2"):
+                return None
+            width = height = None
+            while True:
+                line = handle.readline()
+                if not line:
+                    return None
+                stripped = line.strip()
+                if not stripped or stripped.startswith(b"#"):
+                    continue
+                parts = stripped.split()
+                if width is None and len(parts) >= 2:
+                    width, height = int(parts[0]), int(parts[1])
+                    return width, height
+                if width is None and len(parts) == 1:
+                    width = int(parts[0])
+                    continue
+                if width is not None and height is None:
+                    height = int(parts[0])
+                    return width, height
+    except Exception:
+        return None
+    return None
+
+
 class CoordinateMissionStore:
     """Read/write shared ROS waypoint missions without changing the ROS mission schema."""
 
@@ -67,28 +97,68 @@ class CoordinateMissionStore:
         self.maps_dir.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()
 
+    def _map_summary(self, path: Path) -> Dict[str, Any]:
+        item: Dict[str, Any] = {
+            "id": path.stem,
+            "name": path.stem,
+            "path": str(path),
+            "has_preview": False,
+            "updated_at": datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).isoformat(),
+        }
+        try:
+            payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+            image_name = payload.get("image")
+            if image_name:
+                item["image"] = image_name
+                image_path = path.parent / image_name
+                item["has_preview"] = image_path.exists()
+                if image_path.exists() and image_name.lower().endswith(".pgm"):
+                    size = _read_pgm_size(image_path)
+                    if size:
+                        item["width_px"], item["height_px"] = size
+            if payload.get("resolution") is not None:
+                item["resolution"] = float(payload.get("resolution"))
+            origin = payload.get("origin")
+            if isinstance(origin, (list, tuple)) and len(origin) >= 2:
+                item["origin"] = [float(origin[0]), float(origin[1]), float(origin[2]) if len(origin) > 2 else 0.0]
+            item["negate"] = int(payload.get("negate", 0))
+            item["occupied_thresh"] = float(payload.get("occupied_thresh", 0.65))
+            item["free_thresh"] = float(payload.get("free_thresh", 0.196))
+        except Exception as exc:
+            item["error"] = str(exc)
+        return item
+
     def list_maps(self) -> List[Dict[str, Any]]:
-        maps: List[Dict[str, Any]] = []
-        for path in sorted(self.maps_dir.glob("*.yaml")):
-            item: Dict[str, Any] = {
-                "id": path.stem,
-                "name": path.stem,
-                "path": str(path),
-                "has_preview": False,
-                "updated_at": datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).isoformat(),
-            }
-            try:
-                payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-                image_name = payload.get("image")
-                if image_name:
-                    item["image"] = image_name
-                    item["has_preview"] = (path.parent / image_name).exists()
-                if payload.get("resolution") is not None:
-                    item["resolution"] = payload.get("resolution")
-            except Exception as exc:
-                item["error"] = str(exc)
-            maps.append(item)
-        return maps
+        return [self._map_summary(path) for path in sorted(self.maps_dir.glob("*.yaml"))]
+
+    def load_map(self, map_id: str) -> Dict[str, Any]:
+        safe = _safe_id(map_id, "map_id")
+        path = self.maps_dir / f"{safe}.yaml"
+        if not path.exists():
+            raise FileNotFoundError(f"Map '{map_id}' was not found.")
+        summary = self._map_summary(path)
+        if "error" in summary:
+            raise ValueError(summary["error"])
+        if "resolution" not in summary or "origin" not in summary:
+            raise ValueError(f"Map '{map_id}' is missing origin/resolution metadata.")
+        summary["image_url"] = f"/api/maps/{safe}/image"
+        return summary
+
+    def map_image_path(self, map_id: str) -> Path:
+        safe = _safe_id(map_id, "map_id")
+        yaml_path = self.maps_dir / f"{safe}.yaml"
+        if not yaml_path.exists():
+            raise FileNotFoundError(f"Map '{map_id}' was not found.")
+        payload = yaml.safe_load(yaml_path.read_text(encoding="utf-8")) or {}
+        image_name = payload.get("image")
+        if not image_name:
+            raise FileNotFoundError(f"Map '{map_id}' yaml has no image reference.")
+        image_path = (yaml_path.parent / image_name).resolve()
+        if self.maps_dir.resolve() not in image_path.parents:
+            raise ValueError("Map image path escaped shared_missions/maps.")
+        if not image_path.exists():
+            raise FileNotFoundError(f"Map image for '{map_id}' is not on disk.")
+        return image_path
 
     def list_missions(self) -> List[Dict[str, Any]]:
         missions: List[Dict[str, Any]] = []
@@ -224,6 +294,8 @@ class RosProcessService:
     Runtime behavior still needs Ubuntu 20.04 / ROS 2 Foxy validation.
     """
 
+    AUTONOMOUS_EXPLORATION_AVAILABLE = False
+
     def __init__(self, project_root: Path, robot_mode: str, interface_name: str) -> None:
         self.project_root = Path(project_root)
         self.robot_mode = robot_mode
@@ -235,6 +307,8 @@ class RosProcessService:
         self._lock = threading.RLock()
         self._processes: Dict[str, _ManagedProcess] = {}
         self._last_results: Dict[str, Dict[str, Any]] = {}
+        self._mapping_mode: str = "idle"
+        self._mapping_mode_note: str = ""
 
     def status(self) -> Dict[str, Any]:
         with self._lock:
@@ -245,14 +319,29 @@ class RosProcessService:
                 "last_results": dict(self._last_results),
                 "runtime_verified": False,
                 "note": "ROS launch wiring is present; full mapping, lidar, AMCL, Nav2, and mission runtime must be validated on Ubuntu 20.04 with a live /scan.",
+                "mapping_mode": self._mapping_mode,
+                "mapping_mode_note": self._mapping_mode_note,
+                "autonomous_exploration_available": self.AUTONOMOUS_EXPLORATION_AVAILABLE,
             }
 
     def start_mapping(self, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         payload = payload or {}
         ros_mode = str(payload.get("robot_mode") or "go2")
+        requested_mode = str(payload.get("mode") or "manual").strip().lower()
+        if requested_mode not in {"manual", "autonomous"}:
+            return self._record_result(
+                "mapping_start", False,
+                f"Unknown mapping mode '{requested_mode}'. Use 'manual' or 'autonomous'.",
+            )
         block = self._sdk_ownership_block(ros_mode)
         if block:
             return self._record_result("mapping_start", False, block)
+        mode_note = ""
+        if requested_mode == "autonomous" and not self.AUTONOMOUS_EXPLORATION_AVAILABLE:
+            mode_note = (
+                "Autonomous exploration runtime is not yet wired in this workspace. "
+                "Mapping will still start in operator-guided SLAM mode so the operator can drive the robot."
+            )
         command = [
             "ros2",
             "launch",
@@ -267,10 +356,29 @@ class RosProcessService:
             "use_rviz:=false",
             f"operator_app_root:={self.project_root}",
         ]
-        return self._start_process("mapping", command)
+        result = self._start_process("mapping", command)
+        with self._lock:
+            if result.get("ok"):
+                self._mapping_mode = requested_mode
+                self._mapping_mode_note = mode_note
+            else:
+                self._mapping_mode = "idle"
+                self._mapping_mode_note = ""
+        if result.get("ok") and mode_note:
+            result = dict(result)
+            result["message"] = f"{result['message']} {mode_note}".strip()
+            details = dict(result.get("details") or {})
+            details["mode"] = requested_mode
+            details["mode_note"] = mode_note
+            result["details"] = details
+        return result
 
     def stop_mapping(self) -> Dict[str, Any]:
-        return self._stop_process("mapping")
+        result = self._stop_process("mapping")
+        with self._lock:
+            self._mapping_mode = "idle"
+            self._mapping_mode_note = ""
+        return result
 
     def save_map(self, map_name: str) -> Dict[str, Any]:
         safe_name = _safe_id(map_name, "map_name")
@@ -336,16 +444,38 @@ class RosProcessService:
         return self._run_command("mission_cancel", command, timeout_sec=20)
 
     def mission_status(self) -> Dict[str, Any]:
-        return {
-            "available": self._is_running("navigation"),
-            "last_start": self._last_results.get("mission_start"),
-            "last_cancel": self._last_results.get("mission_cancel"),
-            "runtime_verified": False,
-            "active_waypoint": None,
-            "completed_waypoints": 0,
-            "total_waypoints": 0,
-            "current_task": "",
-        }
+        with self._lock:
+            last_start = self._last_results.get("mission_start") or {}
+            last_cancel = self._last_results.get("mission_cancel") or {}
+            details = last_start.get("details") or {}
+            active_waypoint = details.get("active_waypoint")
+            mission_id = details.get("mission_id")
+            started_at = last_start.get("ts")
+            nav_running = self._is_running("navigation")
+            if last_start.get("ok") and nav_running and not last_cancel.get("ts", "") > (started_at or ""):
+                state = "running"
+            elif last_cancel.get("ts", "") > (started_at or ""):
+                state = "cancelled"
+            elif last_start.get("ok"):
+                state = "ready"
+            else:
+                state = "idle"
+            return {
+                "available": nav_running,
+                "state": state,
+                "last_start": last_start,
+                "last_cancel": last_cancel,
+                "runtime_verified": False,
+                "active_waypoint": active_waypoint,
+                "completed_waypoints": int(details.get("completed_waypoints") or 0),
+                "total_waypoints": int(details.get("total_waypoints") or 0),
+                "current_task": str(details.get("current_task") or ""),
+                "mission_id": mission_id,
+                "note": (
+                    "Live mission progress (active waypoint, completed count) is only emitted by the ROS "
+                    "mission_executor node; without a live ROS environment these fields stay at their default values."
+                ),
+            }
 
     def _sdk_ownership_block(self, ros_mode: str) -> str:
         if self.robot_mode == "go2" and ros_mode == "go2":
@@ -485,6 +615,86 @@ class RosProcessService:
     def shutdown(self) -> None:
         for key in list(self._processes.keys()):
             self._stop_process(key)
+
+
+class OperatorLayoutStore:
+    """Small JSON-backed key/value store for operator workspace layouts.
+
+    Used as an optional backend for the web panel's sensor-workspace layout.
+    Browsers still use localStorage first; this store is only a shared backup.
+    """
+
+    def __init__(self, project_root: Path) -> None:
+        self.project_root = Path(project_root)
+        self.path = self.project_root / "runs" / "operator_layouts.json"
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._lock = threading.RLock()
+
+    def _read_all(self) -> Dict[str, Any]:
+        if not self.path.exists():
+            return {}
+        try:
+            return json.loads(self.path.read_text(encoding="utf-8")) or {}
+        except Exception:
+            return {}
+
+    def get(self, layout_id: str) -> Optional[Dict[str, Any]]:
+        safe = _safe_id(layout_id, "layout_id")
+        with self._lock:
+            return self._read_all().get(safe)
+
+    def list(self) -> List[str]:
+        with self._lock:
+            return sorted(self._read_all().keys())
+
+    def save(self, layout_id: str, layout: Dict[str, Any]) -> Dict[str, Any]:
+        safe = _safe_id(layout_id, "layout_id")
+        if not isinstance(layout, dict):
+            raise ValueError("Layout payload must be a JSON object.")
+        with self._lock:
+            payload = self._read_all()
+            payload[safe] = {
+                "layout": layout,
+                "updated_at": utc_now_iso(),
+            }
+            self.path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+            return payload[safe]
+
+    def delete(self, layout_id: str) -> bool:
+        safe = _safe_id(layout_id, "layout_id")
+        with self._lock:
+            payload = self._read_all()
+            if safe not in payload:
+                return False
+            del payload[safe]
+            self.path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+            return True
+
+
+def map_world_to_pixel(
+    world_x: float, world_y: float, *, origin: List[float], resolution: float, height_px: int
+) -> Tuple[float, float]:
+    """Convert metric (x, y) in the map frame to pixel (u, v) in the image.
+
+    Follows the ROS map_server convention: origin is the world coordinate of the
+    lower-left pixel, image y grows downward.
+    """
+    if resolution <= 0:
+        raise ValueError("resolution must be > 0")
+    u = (world_x - origin[0]) / resolution
+    v = height_px - (world_y - origin[1]) / resolution
+    return u, v
+
+
+def map_pixel_to_world(
+    u: float, v: float, *, origin: List[float], resolution: float, height_px: int
+) -> Tuple[float, float]:
+    """Inverse of map_world_to_pixel."""
+    if resolution <= 0:
+        raise ValueError("resolution must be > 0")
+    world_x = origin[0] + u * resolution
+    world_y = origin[1] + (height_px - v) * resolution
+    return world_x, world_y
 
 
 def build_sensor_summary(runtime: Any) -> Dict[str, Any]:

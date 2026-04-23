@@ -23,6 +23,12 @@
     <!-- Toast notifications -->
     <div id="toastStack" class="toast-stack" aria-live="polite"></div>
 
+    <!-- Sensor tile fullscreen overlay host (JS moves a tile into here when expanded) -->
+    <div id="tileFullscreenOverlay" class="tile-fullscreen-overlay hidden" role="dialog" aria-modal="true" aria-label="Sensor tile fullscreen">
+      <button class="tile-fullscreen-close" id="tileFullscreenClose" aria-label="Exit fullscreen">Exit fullscreen</button>
+      <div id="tileFullscreenMount" class="tile-fullscreen-mount"></div>
+    </div>
+
     <!-- ── Top bar ──────────────────────────────────────── -->
     <header class="topbar">
 
@@ -136,14 +142,31 @@
         <div class="section-heading">
           <div>
             <h2>Mapping</h2>
-            <p>Walk the robot through the area, then press Save map.</p>
+            <p>Choose a mapping mode, start the SLAM stack, then save the map when finished.</p>
           </div>
           <span class="status-pill" id="mappingBadge">Mapping: stopped</span>
         </div>
 
         <div class="two-column">
           <article class="workflow-card">
-            <h3>Mapping session</h3>
+            <h3>Mapping mode</h3>
+            <div class="segmented-control mapping-mode-toggle" role="tablist">
+              <button class="active" data-mapping-mode="manual" type="button">
+                Operator-guided
+              </button>
+              <button data-mapping-mode="autonomous" type="button">
+                Autonomous
+              </button>
+            </div>
+            <p class="muted-text" id="mappingModeHint">
+              Operator-guided mapping uses manual driving to build the SLAM map.
+            </p>
+            <div id="autonomousRuntimeBanner" class="runtime-banner hidden">
+              <strong>Autonomous exploration runtime not yet available.</strong>
+              <span>This workspace only wires in operator-guided SLAM. Starting in autonomous mode will launch SLAM but you must still drive the robot manually.</span>
+            </div>
+
+            <h3 style="margin-top:20px;">Mapping session</h3>
             <label class="field">
               <span>Session name</span>
               <input id="mappingSessionName" value="site_mapping" />
@@ -155,9 +178,6 @@
             <div class="action-row">
               <button class="primary-action" id="startMappingBtn">
                 <i data-lucide="play" style="width:14px;height:14px;"></i> Start mapping
-              </button>
-              <button class="secondary-action" id="pauseMappingBtn" disabled>
-                <i data-lucide="pause" style="width:14px;height:14px;"></i> Pause
               </button>
               <button class="secondary-action" id="stopMappingBtn">
                 <i data-lucide="square" style="width:14px;height:14px;"></i> Stop mapping
@@ -172,20 +192,20 @@
           <article class="workflow-card preview-card">
             <h3>Map preview</h3>
             <div class="map-preview" id="mapPreview">
-              <strong>Map preview unavailable</strong>
+              <strong id="mapPreviewHeading">Map preview unavailable</strong>
               <!-- STATUS: UI structure ready, backend stub only — needs live /scan topic -->
-              <span>Start mapping to build a map. Live rendering requires a ROS 2 Foxy environment on Ubuntu 20.04.</span>
+              <span id="mapPreviewMessage">Start mapping to build a map. Live rendering requires a ROS 2 Foxy environment on Ubuntu 20.04.</span>
             </div>
           </article>
         </div>
       </section>
 
-      <!-- ─── Tab 3: Waypoints ─────────────────────────── -->
+      <!-- ─── Tab 3: Map & Waypoints ───────────────────── -->
       <section id="waypoints" class="tab-panel">
         <div class="section-heading">
           <div>
-            <h2>Waypoints</h2>
-            <p>Build a route by adding waypoints from the robot's current position.</p>
+            <h2>Map &amp; waypoints</h2>
+            <p>Place waypoints graphically on the map or by typing exact x/y/yaw coordinates.</p>
           </div>
           <div class="header-controls">
             <select id="missionSelect" aria-label="Load saved route"></select>
@@ -196,55 +216,102 @@
           </div>
         </div>
 
-        <div class="waypoint-layout">
-          <article class="workflow-card">
-            <h3>Route details</h3>
-            <label class="field">
-              <span>Route name</span>
-              <input id="missionIdInput" placeholder="my_route" />
-            </label>
-            <label class="field">
-              <span>Map</span>
-              <select id="missionMapSelect" aria-label="Select map for this route"></select>
-            </label>
-            <div class="action-row">
-              <button class="primary-action" id="saveMissionBtn">
-                <i data-lucide="save" style="width:14px;height:14px;"></i> Save route
-              </button>
-              <button class="danger-secondary" id="deleteMissionBtn">
-                <i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete route
-              </button>
+        <div class="map-workspace">
+          <div class="map-canvas-wrap">
+            <div class="map-toolbar">
+              <label class="field compact-field">
+                <span>Map</span>
+                <select id="missionMapSelect" aria-label="Select map for this route"></select>
+              </label>
+              <div class="map-tool-group" role="group" aria-label="Canvas tools">
+                <button class="tool-btn active" data-tool="place">Place</button>
+                <button class="tool-btn" data-tool="select">Select</button>
+                <button class="tool-btn" data-tool="pan">Pan</button>
+              </div>
+              <div class="map-tool-group">
+                <button class="tool-btn" id="mapZoomInBtn" title="Zoom in">+</button>
+                <button class="tool-btn" id="mapZoomOutBtn" title="Zoom out">−</button>
+                <button class="tool-btn" id="mapResetBtn" title="Reset view">Reset</button>
+              </div>
+              <span class="coord-readout" id="mapCoordReadout">world (–, –)</span>
             </div>
-          </article>
+            <div class="map-canvas-container">
+              <canvas id="missionMapCanvas"></canvas>
+              <div class="map-empty-overlay hidden" id="mapEmptyOverlay">
+                <strong>No map loaded</strong>
+                <span>Select a saved map above or run Mapping first. Graphical placement needs origin &amp; resolution from the map yaml.</span>
+              </div>
+            </div>
+            <p class="muted-text map-hint" id="mapClickHint">
+              Left-click places a waypoint. Click-and-drag to set yaw. Scroll to zoom.
+            </p>
+          </div>
 
-          <article class="workflow-card">
-            <h3>Add waypoint</h3>
-            <label class="field">
-              <span>Waypoint name</span>
-              <input id="newWaypointName" placeholder="door_1" />
-            </label>
-            <label class="field">
-              <span>Task label</span>
-              <input id="newWaypointTask" value="inspect" />
-            </label>
-            <button class="primary-action full-width" id="addWaypointPoseBtn">
-              <i data-lucide="crosshair" style="width:14px;height:14px;"></i>
-              Add from current robot pose
-            </button>
-            <p class="muted-text" id="poseHint">Pose will be read from the telemetry feed.</p>
-          </article>
+          <aside class="map-side-panel">
+            <article class="workflow-card">
+              <h3>Route</h3>
+              <label class="field">
+                <span>Route name</span>
+                <input id="missionIdInput" placeholder="my_route" />
+              </label>
+              <div class="action-row">
+                <button class="primary-action" id="saveMissionBtn">
+                  <i data-lucide="save" style="width:14px;height:14px;"></i> Save
+                </button>
+                <button class="secondary-action" id="saveAsMissionBtn">
+                  Save as…
+                </button>
+                <button class="secondary-action" id="clearMissionBtn">
+                  Clear all
+                </button>
+                <button class="danger-secondary" id="deleteMissionBtn">
+                  <i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete
+                </button>
+              </div>
+            </article>
+
+            <article class="workflow-card">
+              <h3>Add waypoint</h3>
+              <div class="coord-form">
+                <label class="field"><span>Name</span><input id="newWaypointName" placeholder="door_1" /></label>
+                <label class="field"><span>Task</span><input id="newWaypointTask" value="inspect" /></label>
+                <label class="field"><span>x (m)</span><input id="newWaypointX" type="number" step="0.01" value="0" /></label>
+                <label class="field"><span>y (m)</span><input id="newWaypointY" type="number" step="0.01" value="0" /></label>
+                <label class="field"><span>yaw (rad)</span><input id="newWaypointYaw" type="number" step="0.01" value="0" /></label>
+              </div>
+              <div class="action-row">
+                <button class="primary-action" id="addWaypointCoordBtn">
+                  <i data-lucide="plus" style="width:14px;height:14px;"></i> Add by coords
+                </button>
+                <button class="secondary-action" id="addWaypointPoseBtn">
+                  <i data-lucide="crosshair" style="width:14px;height:14px;"></i> From robot pose
+                </button>
+              </div>
+              <p class="muted-text" id="poseHint">Pose will be read from the telemetry feed.</p>
+            </article>
+
+            <article class="workflow-card route-run-card">
+              <h3>Send to navigation</h3>
+              <div class="action-row">
+                <button class="primary-action" id="runRouteBtn">
+                  <i data-lucide="play-circle" style="width:14px;height:14px;"></i> Send to Nav
+                </button>
+                <button class="danger-secondary" id="stopRouteBtn">
+                  <i data-lucide="stop-circle" style="width:14px;height:14px;"></i> Stop
+                </button>
+              </div>
+              <p class="muted-text">Sends the saved route to the ROS Nav2 FollowWaypoints action.</p>
+            </article>
+          </aside>
         </div>
 
-        <div class="route-actions">
-          <button class="primary-action large-action" id="runRouteBtn">
-            <i data-lucide="play-circle" style="width:17px;height:17px;"></i> Run route
-          </button>
-          <button class="danger-secondary large-action" id="stopRouteBtn">
-            <i data-lucide="stop-circle" style="width:17px;height:17px;"></i> Stop route
-          </button>
-        </div>
-
-        <div id="waypointList" class="waypoint-list"></div>
+        <article class="workflow-card waypoint-list-card">
+          <div class="card-title-row">
+            <h3>Waypoints</h3>
+            <span class="muted-text" id="waypointCountLabel">0 waypoints</span>
+          </div>
+          <div id="waypointList" class="waypoint-list"></div>
+        </article>
 
         <details class="technical-panel">
           <summary>Advanced — JSON editor</summary>
@@ -303,6 +370,10 @@
             <h3>Route progress</h3>
             <dl class="progress-list">
               <div>
+                <dt>Mission state</dt>
+                <dd id="missionState">idle</dd>
+              </div>
+              <div>
                 <dt>Active waypoint</dt>
                 <dd id="activeWaypoint">None</dd>
               </div>
@@ -314,7 +385,12 @@
                 <dt>Current task</dt>
                 <dd id="currentTask">None</dd>
               </div>
+              <div>
+                <dt>Manual takeover</dt>
+                <dd id="missionManualTakeover">no</dd>
+              </div>
             </dl>
+            <p class="muted-text" id="missionStateNote"></p>
           </article>
         </div>
       </section>
@@ -380,42 +456,120 @@
       <section id="sensors" class="tab-panel">
         <div class="section-heading">
           <div>
-            <h2>Sensors</h2>
-            <p>Live camera feeds and lidar status. Select the active camera view below.</p>
+            <h2>Operator workspace</h2>
+            <p>Live sensor tiles. Each tile can be expanded fullscreen. Layout is saved in this browser.</p>
           </div>
-          <div class="segmented-control">
-            <button class="active" id="useBuiltInCameraBtn">Built-in</button>
-            <button id="useRealsenseCameraBtn">D435i</button>
+          <div class="header-controls">
+            <button class="secondary-action" id="resetLayoutBtn" title="Reset layout to default">
+              <i data-lucide="layout-grid" style="width:14px;height:14px;"></i> Reset layout
+            </button>
           </div>
         </div>
 
-        <div class="sensor-grid">
-          <article class="sensor-card active-sensor" id="builtInCameraCard">
-            <div class="card-title-row">
-              <h3>Built-in camera</h3>
-              <span class="status-dot" id="builtInCameraStatus">Checking</span>
+        <div class="sensor-workspace" id="sensorWorkspace">
+          <article class="sensor-tile" data-widget="camera" id="builtInCameraCard">
+            <header class="sensor-tile-header" draggable="true">
+              <div class="card-title-row">
+                <h3>Built-in camera</h3>
+                <span class="status-dot" id="builtInCameraStatus">Checking</span>
+              </div>
+              <div class="tile-controls">
+                <button class="icon-action" data-tile-fullscreen title="Fullscreen">
+                  <i data-lucide="maximize-2" style="width:14px;height:14px;"></i>
+                </button>
+              </div>
+            </header>
+            <div class="tile-body">
+              <img id="builtInCameraFeed" src="/stream/camera" alt="Built-in robot camera stream" />
             </div>
-            <!-- STATUS: wired and tested in mock mode -->
-            <img id="builtInCameraFeed" src="/stream/camera" alt="Built-in robot camera stream" />
           </article>
 
-          <article class="sensor-card" id="realsenseCard">
-            <div class="card-title-row">
-              <h3>Intel RealSense D435i</h3>
-              <span class="status-dot" id="realsenseStatus">Checking</span>
+          <article class="sensor-tile" data-widget="realsense" id="realsenseCard">
+            <header class="sensor-tile-header" draggable="true">
+              <div class="card-title-row">
+                <h3>Intel RealSense D435i</h3>
+                <span class="status-dot" id="realsenseStatus">Checking</span>
+              </div>
+              <div class="tile-controls">
+                <button class="icon-action" data-tile-fullscreen title="Fullscreen">
+                  <i data-lucide="maximize-2" style="width:14px;height:14px;"></i>
+                </button>
+              </div>
+            </header>
+            <div class="tile-body">
+              <img id="realsenseFeed" alt="Intel RealSense D435i color stream" />
+              <p class="muted-text" id="realsenseNote">Waiting for RealSense status.</p>
             </div>
-            <!-- STATUS: API contract ready, runtime requires Ubuntu 20.04 + pyrealsense2 -->
-            <img id="realsenseFeed" alt="Intel RealSense D435i color stream" />
-            <p class="muted-text" id="realsenseNote">Waiting for RealSense status.</p>
           </article>
 
-          <article class="sensor-card lidar-card">
-            <div class="card-title-row">
-              <h3>Built-in lidar</h3>
-              <span class="status-dot" id="lidarStatus">Checking</span>
+          <article class="sensor-tile sensor-tile-wide" data-widget="lidar" id="lidarCard">
+            <header class="sensor-tile-header" draggable="true">
+              <div class="card-title-row">
+                <h3>Hesai Unitree XT16 LiDAR</h3>
+                <span class="status-dot" id="lidarStatus">Checking</span>
+              </div>
+              <div class="tile-controls">
+                <div class="segmented-control mini-segmented">
+                  <button class="active" data-lidar-preset="default">Default</button>
+                  <button data-lidar-preset="dense">Dense</button>
+                  <button data-lidar-preset="sparse">Sparse</button>
+                </div>
+                <button class="icon-action" id="lidarFollowBtn" title="Follow robot" aria-pressed="true">
+                  <i data-lucide="locate-fixed" style="width:14px;height:14px;"></i>
+                </button>
+                <button class="icon-action" id="lidarResetViewBtn" title="Reset view">
+                  <i data-lucide="target" style="width:14px;height:14px;"></i>
+                </button>
+                <button class="icon-action" data-tile-fullscreen title="Fullscreen">
+                  <i data-lucide="maximize-2" style="width:14px;height:14px;"></i>
+                </button>
+              </div>
+            </header>
+            <div class="tile-body lidar-tile-body">
+              <canvas id="lidarCanvas" class="lidar-canvas"></canvas>
+              <p class="muted-text" id="lidarViewerNote">Loading scan data…</p>
             </div>
-            <canvas id="lidarCanvas" class="lidar-canvas" width="300" height="300"></canvas>
-            <p class="muted-text" id="lidarViewerNote">Loading scan data…</p>
+          </article>
+
+          <article class="sensor-tile" data-widget="telemetry" id="telemetryCard">
+            <header class="sensor-tile-header" draggable="true">
+              <div class="card-title-row">
+                <h3>Telemetry &amp; IMU</h3>
+                <span class="status-dot" id="telemetryStatus">Live</span>
+              </div>
+              <div class="tile-controls">
+                <button class="icon-action" data-tile-fullscreen title="Fullscreen">
+                  <i data-lucide="maximize-2" style="width:14px;height:14px;"></i>
+                </button>
+              </div>
+            </header>
+            <div class="tile-body">
+              <dl class="progress-list telemetry-grid">
+                <div><dt>Battery</dt><dd id="tileBattery">—</dd></div>
+                <div><dt>Mode</dt><dd id="tileMode">—</dd></div>
+                <div><dt>Pose x</dt><dd id="tilePoseX">—</dd></div>
+                <div><dt>Pose y</dt><dd id="tilePoseY">—</dd></div>
+                <div><dt>Yaw</dt><dd id="tilePoseYaw">—</dd></div>
+                <div><dt>Faults</dt><dd id="tileFaults">None</dd></div>
+              </dl>
+            </div>
+          </article>
+
+          <article class="sensor-tile" data-widget="events" id="eventsCard">
+            <header class="sensor-tile-header" draggable="true">
+              <div class="card-title-row">
+                <h3>Recent events</h3>
+                <span class="status-dot is-ok">Live</span>
+              </div>
+              <div class="tile-controls">
+                <button class="icon-action" data-tile-fullscreen title="Fullscreen">
+                  <i data-lucide="maximize-2" style="width:14px;height:14px;"></i>
+                </button>
+              </div>
+            </header>
+            <div class="tile-body">
+              <div id="eventTileList" class="operator-log mini-log"></div>
+            </div>
           </article>
         </div>
       </section>

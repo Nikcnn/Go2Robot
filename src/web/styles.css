@@ -977,6 +977,306 @@ details.technical-panel[open] > summary::before { content: "▾ "; }
   aspect-ratio: 1 / 1;
   border-radius: var(--r-sm);
   border: 1px solid var(--line);
-  background: #080d0d;
+  background: radial-gradient(circle at center, #0c1618 0%, #060a0b 70%);
   margin-top: 12px;
+}
+
+/* --- Map & Waypoints workspace ------------------------ */
+.map-workspace {
+  display: grid;
+  grid-template-columns: minmax(420px, 1.4fr) minmax(320px, 1fr);
+  gap: 16px;
+  margin-top: 10px;
+}
+
+@media (max-width: 1100px) {
+  .map-workspace { grid-template-columns: 1fr; }
+}
+
+.map-canvas-wrap {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+
+.map-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+}
+
+.compact-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.compact-field > span { color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.compact-field > select { min-width: 180px; }
+
+.map-tool-group {
+  display: inline-flex;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 2px;
+}
+
+.tool-btn {
+  background: transparent;
+  color: var(--muted);
+  border: 0;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.tool-btn:hover { background: var(--surface-3); color: var(--text); }
+.tool-btn.active {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.coord-readout {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+}
+
+.map-canvas-container {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.015) 0 6px, rgba(0,0,0,0.02) 6px 12px),
+    #0a0e10;
+}
+
+#missionMapCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+}
+
+.map-canvas-container.tool-pan #missionMapCanvas { cursor: grab; }
+.map-canvas-container.tool-pan.panning #missionMapCanvas { cursor: grabbing; }
+.map-canvas-container.tool-select #missionMapCanvas { cursor: pointer; }
+
+.map-empty-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 20px;
+  text-align: center;
+  background: rgba(10, 14, 16, 0.85);
+  color: var(--muted);
+}
+
+.map-empty-overlay strong { color: var(--text); font-size: 1rem; }
+.map-empty-overlay.hidden { display: none; }
+
+.map-hint {
+  padding: 8px 12px;
+  border-top: 1px solid var(--line);
+  background: var(--surface-2);
+  font-size: 0.82rem;
+}
+
+.map-side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.map-side-panel .workflow-card { margin-bottom: 0; }
+
+.coord-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+}
+
+.waypoint-list-card { margin-top: 16px; }
+
+.waypoint-card.is-selected {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* --- Mapping mode toggle ------------------------------ */
+.mapping-mode-toggle { width: 100%; }
+.runtime-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--warn-border);
+  background: var(--warn-bg);
+  color: var(--text);
+  margin-top: 8px;
+  font-size: 0.85rem;
+}
+.runtime-banner.hidden { display: none; }
+.runtime-banner strong { color: var(--warn); }
+
+/* --- Sensor workspace tiles --------------------------- */
+.sensor-workspace {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.sensor-tile {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  overflow: hidden;
+  min-height: 240px;
+  transition: transform 0.1s, border-color 0.12s, box-shadow 0.12s;
+}
+
+.sensor-tile.dragging { opacity: 0.6; }
+.sensor-tile.drag-over { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-border); }
+
+.sensor-tile-wide { grid-column: span 2; }
+@media (max-width: 900px) { .sensor-tile-wide { grid-column: auto; } }
+
+.sensor-tile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+  cursor: grab;
+}
+
+.sensor-tile-header:active { cursor: grabbing; }
+.sensor-tile-header .card-title-row h3 { margin: 0; font-size: 0.96rem; }
+
+.tile-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mini-segmented button {
+  padding: 4px 8px;
+  font-size: 0.75rem;
+}
+
+.tile-body {
+  padding: 12px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+.tile-body img {
+  width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  background: #000;
+  border-radius: var(--r-sm);
+}
+
+.lidar-tile-body { padding-top: 8px; }
+.lidar-tile-body .lidar-canvas { margin-top: 0; max-height: 420px; }
+
+.telemetry-grid dd { font-family: var(--mono); }
+
+.mini-log {
+  max-height: 240px;
+  overflow-y: auto;
+  font-size: 0.82rem;
+}
+
+/* --- Tile fullscreen overlay -------------------------- */
+.tile-fullscreen-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  background: rgba(5, 10, 12, 0.92);
+  display: flex;
+  flex-direction: column;
+  padding: 44px 24px 24px;
+}
+.tile-fullscreen-overlay.hidden { display: none; }
+
+.tile-fullscreen-close {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  padding: 6px 14px;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.tile-fullscreen-mount {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.tile-fullscreen-mount > .sensor-tile {
+  flex: 1;
+  min-height: 0;
+  background: var(--surface);
+}
+
+.tile-fullscreen-mount .tile-body {
+  flex: 1;
+  min-height: 0;
+}
+
+.tile-fullscreen-mount .tile-body img,
+.tile-fullscreen-mount .lidar-canvas {
+  max-height: 100%;
+  height: 100%;
+  width: 100%;
+  object-fit: contain;
+}
+
+.icon-action[aria-pressed="true"] {
+  color: var(--accent);
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+}
+
+/* --- Robot / path marker accents on map canvas ------- */
+.map-robot-marker {
+  --robot-color: var(--accent);
 }
