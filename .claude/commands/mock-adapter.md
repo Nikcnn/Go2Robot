@@ -1,24 +1,24 @@
 ---
-allowed-tools: Read(src/robot_adapter.py), Read(src/telemetry.py), Read(src/streaming.py), Read(tests/test_api_smoke.py), Edit(src/robot_adapter.py), Edit(src/telemetry.py), Edit(src/streaming.py), Edit(tests/test_api_smoke.py), Bash(pytest tests/test_api_smoke.py:*)
-description: Patch mock adapter, fake pose, synthetic telemetry, and generated camera frames
+allowed-tools: Read(src/robot_adapter.py), Read(src/integrations/d1_client.py), Read(cpp/d1_bridge/), Read(tests/test_go2_adapter.py), Read(tests/test_d1_client.py), Edit(src/robot_adapter.py), Edit(src/integrations/d1_client.py), Edit(cpp/d1_bridge/), Edit(tests/test_go2_adapter.py), Edit(tests/test_d1_client.py), Bash(pytest tests/test_go2_adapter.py tests/test_d1_client.py)
+description: Patch Go2 MockAdapter, D1 Bridge mock mode, and synthetic feedback
 argument-hint: [optional issue]
 model: claude-sonnet-4-0
 ---
 
-Work only on the mock robot path for this Go2 inspection MVP.
+Work only on the mock path (Go2 Adapter and D1 Bridge) for the inspection system.
 
 Hard constraints:
-- Real SDK uncertainty must stay only in `src/robot_adapter.py`
-- Never invent Unitree SDK methods
-- Mock mode must work end-to-end without hardware
-- Keep frame generation cheap and deterministic enough for tests
-- Do not change unrelated architecture
+- Mock mode must run end-to-end without real Go2/D1 hardware or SDKs.
+- D1 Bridge `--mock` mode must generate plausible synthetic joint feedback.
+- Go2 MockAdapter integrates simple velocity and generates camera frames.
+- Keep frame generation and bridge mock logic cheap and deterministic.
+- Do not spread real SDK calls into mock paths.
 
 Task:
 1. Read only the allowed files.
-2. Patch the minimum needed for mock runtime correctness.
-3. Preserve API compatibility.
-4. Run the targeted smoke test.
-5. Report only what changed and why.
+2. Patch Go2 mock behavior or D1 Bridge mock feedback as needed.
+3. Preserve API/bridge protocol compatibility.
+4. Run targeted tests in mock mode.
+5. Report changes and why they improve mock correctness.
 
 Optional focus from user: $ARGUMENTS

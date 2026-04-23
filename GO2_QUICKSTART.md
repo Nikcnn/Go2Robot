@@ -1,162 +1,60 @@
-# Go2 Quickstart
+# Go2 & D1 Quickstart
 
-Use Ubuntu 20.04 and Python 3.8 for deployment. Use ROS 2 Foxy only for the `ros_ws/` path.
+Use Ubuntu 20.04 and Python 3.8 for deployment. Use ROS 2 Foxy for navigation.
 
-## Choose a Path
-
-Use the Python app when you need:
-
-- operator dashboard
-- scripted JSON routes from `config/routes/`
-- mock mode
-- direct Go2 adapter mode
-- checkpoint images, telemetry, and reports
-
-Use the ROS 2 path when you need:
-
-- coordinate waypoint missions from `shared_missions/missions/`
-- Nav2 `FollowWaypoints`
-- mapping or localization through `/scan`
-- ROS graph integration
-
-Do not run both paths as SDK owners at the same time in real `go2` mode.
-
-## Python App in Mock Mode
+## 1. Quick Start (Mock Mode)
 
 ```bash
-cd /path/to/Go2Robot
-python3.8 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-pip install -r requirements.txt
+# Terminal 1: Python App
 python3 -m src.main --config config/app_config.yaml
+
+# Terminal 2: D1 Bridge (Mock)
+./build/d1_bridge/d1_bridge --mock --socket /tmp/d1_bridge.sock
 ```
 
-Open:
+Open: `http://127.0.0.1:8000/`
 
-```text
-http://127.0.0.1:8000/
-```
+## 2. Operator Workflow
 
-Start a route from the dashboard or by API:
+The dashboard provides a dark-mode interface for both the Go2 robot and the D1 arm.
 
-```bash
-curl -X POST http://127.0.0.1:8000/api/mission/start \
-  -H "Content-Type: application/json" \
-  -d '{"route_id":"short_walk_20cm"}'
-```
+### Setup & Robot Check
+1. Go to the **Setup** tab and press **Check system**.
+2. Verify "Robot: Connected" (Go2) and "D1 Bridge: Online".
 
-Mock mode uses synthetic pose, telemetry, and camera frames. It does not need Go2 hardware, the Unitree SDK, ROS, or RealSense.
+### D1 Arm Control & Monitoring
+1. Switch to the **D1 Arm** tab.
+2. Monitor real-time joint angles (q), velocities (dq), and torques (tau).
+3. **Motion Enable**: Press **Enable Motion** to allow real joint commands (requires bridge-side enablement).
+4. **Joint Control**: Use the sliders or input fields to send joint angle commands.
+5. **Zero Arm**: Press **Zero Arm** to return the arm to its home position.
+6. **Stop / Halt**: Use **Stop / Halt** if the bridge reports an error or if immediate motion cessation is needed.
 
-## Python App on Real Go2
+### Go2 Mapping & Navigation
+1. **Mapping**: Go to the **Mapping** tab, enter a name, and press **Start mapping**. Walk the robot around, then press **Save map**.
+2. **Waypoints**: In the **Waypoints** tab, create a new route and add points from the current robot pose.
+3. **Navigation**: In the **Navigation** tab, start the ROS stack and run your saved route.
 
-Prerequisites:
+### Sensors
+- Use the **Sensors** tab to toggle between the built-in camera and optional RealSense views.
+- The lidar card shows the status of the `/scan` source.
 
-- Ubuntu 20.04
-- Python 3.8 environment with `requirements.txt` installed
-- `unitree_sdk2py` installed manually
-- robot connected on the configured network interface
+## 3. Real Hardware Bring-up
 
-Run:
-
+### Go2 Robot
 ```bash
 python3 -m src.main --config config/app_config.go2.enp0s20f0u1c2.yaml
 ```
 
-If your interface differs, copy the config and change:
-
-```yaml
-robot:
-  mode: go2
-  interface_name: eth0
-```
-
-Useful API commands:
-
+### D1 Arm
 ```bash
-curl -X POST http://127.0.0.1:8000/api/robot/activate
-curl -X POST http://127.0.0.1:8000/api/mode/manual/take
-curl -X POST http://127.0.0.1:8000/api/mode/manual/release
-curl -X POST http://127.0.0.1:8000/api/mode/estop
-curl -X POST http://127.0.0.1:8000/api/mode/reset-estop
+# Requires Ubuntu 20.04 and D1 connected via Ethernet
+./build/d1_bridge/d1_bridge --interface eth0 --socket /run/d1_bridge.sock
 ```
 
-Manual takeover pauses the mission. Manual release does not auto-resume it.
+## 4. Safety & Limits
 
-## ROS 2 Foxy Setup
-
-On Ubuntu 20.04:
-
-```bash
-cd /path/to/Go2Robot/ros_ws
-source /opt/ros/foxy/setup.bash
-rosdep install --from-paths src --ignore-src -r -y
-colcon build --symlink-install
-source install/setup.bash
-export GO2_OPERATOR_APP_ROOT=/path/to/Go2Robot
-export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
-```
-
-## ROS Mapping
-
-```bash
-ros2 launch go2_nav_bringup mapping.launch.py \
-  robot_mode:=go2 \
-  interface_name:=enp0s20f0u1c2 \
-  use_lidar:=true \
-  lidar_mode:=auto \
-  use_realsense:=false \
-  require_realsense:=false
-```
-
-If the Unitree lidar SDK message type cannot be resolved, pass overrides:
-
-```bash
-lidar_sdk_msg_module:=<python_module> lidar_sdk_msg_type:=<message_type>
-```
-
-If the physical lidar is not mounted at `base_link`, override:
-
-```bash
-lidar_tf_x:=0.0 lidar_tf_y:=0.0 lidar_tf_z:=0.0 \
-lidar_tf_roll:=0.0 lidar_tf_pitch:=0.0 lidar_tf_yaw:=0.0
-```
-
-## ROS Navigation
-
-```bash
-ros2 launch go2_nav_bringup navigation.launch.py \
-  robot_mode:=go2 \
-  interface_name:=enp0s20f0u1c2 \
-  map:=/path/to/Go2Robot/shared_missions/maps/site_a_floor_1.yaml \
-  use_lidar:=true \
-  lidar_mode:=auto
-```
-
-Start a coordinate mission:
-
-```bash
-ros2 service call /go2_mission/command go2_interfaces/srv/MissionControl \
-  "{command: start, mission_path: /path/to/Go2Robot/shared_missions/missions/inspect_line_a.json, mission_json: ''}"
-```
-
-Check status:
-
-```bash
-ros2 service call /go2_mission/command go2_interfaces/srv/MissionControl \
-  "{command: status, mission_path: '', mission_json: ''}"
-```
-
-Cancel:
-
-```bash
-ros2 service call /go2_mission/command go2_interfaces/srv/MissionControl \
-  "{command: cancel, mission_path: '', mission_json: ''}"
-```
-
-## Runtime Limits
-
-- Mapping, AMCL, and Nav2 require a real `/scan` source.
-- The PointCloud2-to-LaserScan bridge exists, but the real Unitree lidar SDK message path still needs target validation.
-- The ROS stack must be runtime-tested on Ubuntu 20.04 with ROS 2 Foxy and the robot connected.
-- The Python app remains the fastest hardware-free development path through mock mode.
+- **ESTOP**: Always visible at the top. Halts all Go2 motion and triggers D1 software halt.
+- **D1 Safety**: Real motion requires explicit bridge + app interlocks. Command validation ensures values are within joint limits.
+- **Manual Takeover**: Pauses any active Go2 mission.
+- **DDS Ownership**: Ensure only one process owns the Go2 SDK `ChannelFactory`.

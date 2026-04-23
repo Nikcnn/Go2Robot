@@ -4,7 +4,7 @@ import math
 import threading
 import time
 from dataclasses import dataclass
-from typing import Optional, Protocol, runtime_checkable, List
+from typing import Dict, List, Optional, Protocol, runtime_checkable
 
 import cv2
 import numpy as np
@@ -203,6 +203,51 @@ class MockRobotAdapter:
             return None
         ok, encoded = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 70])
         return encoded.tobytes() if ok else None
+
+    def get_lidar_scan(self) -> List[Dict[str, float]]:
+        """Return simulated 360-point lidar scan: list of {angle (rad), distance (m)}."""
+        t = time.monotonic()
+        room_x, room_y = 2.5, 2.0  # half-extents of a 5m x 4m room
+        obstacles = [
+            (1.2, 0.8, 0.25),
+            (-0.8, 1.5, 0.35),
+            (2.0, -0.5, 0.2),
+            (0.5 + math.sin(t * 0.3) * 0.8, -0.5 + math.cos(t * 0.2) * 0.6, 0.2),
+        ]
+        points: List[Dict[str, float]] = []
+        for i in range(360):
+            angle = math.radians(i)
+            ca = math.cos(angle)
+            sa = math.sin(angle)
+            min_d = 8.0
+            if ca > 1e-6:
+                d = room_x / ca
+                if 0.05 < d < min_d:
+                    min_d = d
+            elif ca < -1e-6:
+                d = room_x / (-ca)
+                if 0.05 < d < min_d:
+                    min_d = d
+            if sa > 1e-6:
+                d = room_y / sa
+                if 0.05 < d < min_d:
+                    min_d = d
+            elif sa < -1e-6:
+                d = room_y / (-sa)
+                if 0.05 < d < min_d:
+                    min_d = d
+            for ox, oy, r in obstacles:
+                fx, fy = -ox, -oy
+                b = 2.0 * (fx * ca + fy * sa)
+                c = fx * fx + fy * fy - r * r
+                disc = b * b - 4.0 * c
+                if disc >= 0:
+                    t_val = (-b - math.sqrt(disc)) / 2.0
+                    if 0.05 < t_val < min_d:
+                        min_d = t_val
+            noise = math.sin(i * 17.3 + t * 3.7) * 0.01
+            points.append({"angle": round(angle, 4), "distance": round(max(0.05, min_d + noise), 3)})
+        return points
 
     def _integrate_locked(self) -> None:
         now = time.monotonic()

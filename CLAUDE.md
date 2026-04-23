@@ -1,49 +1,44 @@
-# Go2 Inspection System
+# Go2 & D1 Inspection System
 
 ## Scope
 
 - Safe test-environment project only.
-- Target Ubuntu 20.04 and Python 3.8.
-- `src/` is the standalone Python app path.
-- `ros_ws/` is the ROS 2 Foxy path.
+- Target Ubuntu 20.04, Python 3.8, and C++17.
+- `src/`: standalone Python app and dashboard.
+- `cpp/d1_bridge/`: C++ daemon for the Unitree D1 arm.
+- `ros_ws/`: ROS 2 Foxy path for navigation.
 - Keep mock mode runnable without hardware.
 
 ## Project Paths
 
-- `src/`: FastAPI app, dashboard, scripted route executor, control core, telemetry, camera streaming, storage, reports, mock adapter, Go2 adapter.
-- `config/routes/`: scripted JSON routes for the Python app.
-- `ros_ws/`: ROS 2 Foxy workspace with `go2_bridge`, `go2_mission`, `go2_interfaces`, and Nav2 bringup.
-- `shared_missions/`: coordinate waypoint missions and maps for the ROS layer.
-- `runs/`: runtime artifacts.
-- `tests/`: hardware-free pytest coverage.
+- `src/`: FastAPI app, dashboard, Go2 control, D1 service/client, telemetry, streaming, storage, mock/real Go2 adapters.
+- `cpp/d1_bridge/`: C++17 bridge daemon for D1 Arm (UNIX socket JSON protocol).
+- `ros_ws/`: ROS 2 Foxy workspace with bridge, mission, and Nav2 bringup.
+- `config/routes/`: scripted JSON routes for the Go2 Python app.
+- `shared_missions/`: coordinate missions and maps for the ROS layer.
+- `runs/`: mission artifacts and reports.
+- `tests/`: hardware-free pytest coverage for Python; C++ tests in the bridge build.
 
 ## Non-Negotiables
 
-- Never invent Unitree SDK method names.
-- Keep uncertain Python app SDK integration in `src/robot/go2_adapter.py` and closely related adapter files.
-- In ROS, `go2_bridge` is the only process allowed to touch the adapter or `unitree_sdk2py`.
-- Treat `ChannelFactory` as a process singleton.
-- Do not run the Python app and `go2_bridge` as real SDK owners at the same time.
-- For ROS work, use Foxy APIs and Ubuntu 20.04 assumptions only.
+- **Go2 SDK**: In the Python app, isolate `unitree_sdk2py` in `src/robot/go2_adapter.py`.
+- **D1 SDK**: All D1 arm SDK logic belongs in `cpp/d1_bridge/`. Python app uses the UNIX socket client.
+- **D1 Safety**: Real arm motion is strictly disabled. `can_publish_motion` must stay false.
+- **DDS Singleton**: Only one process should own the `ChannelFactory` per hardware path.
+- **Mock Mode**: Both Go2 and D1 paths must work end-to-end without hardware.
+- **ROS Layer**: Use Foxy APIs and Ubuntu 20.04 assumptions only.
 
-## Mission Model
+## Mission & Control
 
-- Python app routes are scripted JSON files using steps such as `move`, `move_velocity`, `rotate`, `checkpoint`, `stop`, `stand_up`, `wait`, and `settle`.
-- ROS missions are coordinate waypoint JSON files sent through Nav2 `FollowWaypoints`.
-- Priority is always `ESTOP > MANUAL > AUTO`.
-- Manual override pauses missions and does not auto-resume them.
-
-## Sensors
-
-- Robot camera support stays on the adapter path.
-- RealSense is optional and must not break mock mode or robot-camera operation.
-- ROS lidar code publishes `/points` and converts PointCloud2 to `/scan`, but real Unitree lidar message import details still need Ubuntu 20.04 target validation.
-- Do not claim mapping, AMCL, or Nav2 runtime completeness without a verified live `/scan`.
+- Go2 Python: scripted time/velocity JSON routes.
+- Go2 ROS: coordinate waypoint JSON missions (Nav2).
+- Priority: `ESTOP > MANUAL > AUTO`.
+- Manual takeover pauses Go2 missions.
+- D1 Arm: Full motion control supported with safety-gated interlocks and dry-run validation.
 
 ## Working Style
 
-- Read the minimum files needed.
 - Patch the minimum surface area.
-- Prefer direct modules over large abstractions.
-- Keep Python app concerns and ROS concerns separated.
-- Keep tests fast and hardware-free unless hardware testing is explicitly requested.
+- Do not spread SDK uncertainty outside adapter/bridge boundaries.
+- Keep Python, C++, and ROS concerns separated.
+- Keep tests fast and hardware-free.
